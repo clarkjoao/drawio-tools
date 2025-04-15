@@ -1,11 +1,28 @@
-import { useState } from 'react';
-import { MxBuilder } from './MxGraph/MxBuilder';
+import { useState, useEffect } from 'react';
+import { MxBuilder, LayerInfo } from './MxGraph/MxBuilder';
 import { formatXml } from './utils/xml';
 
 export default function App() {
   const [xmlInput, setXmlInput] = useState('');
   const [copied, setCopied] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [layers, setLayers] = useState<LayerInfo[]>([]);
+  const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
+
+  // Atualiza camadas sempre que o XML muda
+  useEffect(() => {
+    try {
+      const builder = MxBuilder.fromXml(xmlInput);
+      const detectedLayers = builder.listLayers();
+      setLayers(detectedLayers);
+      if (detectedLayers.length > 0) {
+        setSelectedLayerId(detectedLayers[0].id);
+      }
+    } catch {
+      setLayers([]);
+      setSelectedLayerId(null);
+    }
+  }, [xmlInput]);
 
   const handleCopy = async () => {
     try {
@@ -20,7 +37,9 @@ export default function App() {
   const handleAddTemplate = () => {
     try {
       const builder = MxBuilder.fromXml(xmlInput);
-      builder.addTemplate('template-' + Date.now(), 300, 200);
+      const selectedLayer = builder.listLayers().find(l => l.id === selectedLayerId);
+
+      builder.addTemplate('template-' + Date.now(), 300, 200, selectedLayer);
       setXmlInput(formatXml(builder.toXmlString()));
     } catch (e: any) {
       alert('❌ Erro ao adicionar template: ' + e.message);
@@ -39,6 +58,23 @@ export default function App() {
         placeholder="Cole seu XML .drawio aqui (ou gere com MxBuilder)..."
       />
 
+      {layers.length > 0 && (
+        <div>
+          <label className="font-semibold block mb-1">Selecionar Camada:</label>
+          <select
+            className="p-2 border rounded w-full max-w-sm"
+            value={selectedLayerId || ''}
+            onChange={(e) => setSelectedLayerId(e.target.value)}
+          >
+            {layers.map((layer) => (
+              <option key={layer.id} value={layer.id}>
+                {layer.label || layer.id}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-3">
         <button
           onClick={handleCopy}
@@ -50,6 +86,7 @@ export default function App() {
         <button
           onClick={handleAddTemplate}
           className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+          disabled={!selectedLayerId}
         >
           ➕ Adicionar Template
         </button>

@@ -3,7 +3,7 @@ import { MxGeometry } from './MxGeometry';
 export type MxCellChild = { toXmlString: () => string } | string;
 
 export class MxCell {
-  id!: string;
+  id?: string;
   value?: string;
   style?: string;
   parent?: string;
@@ -12,6 +12,8 @@ export class MxCell {
   source?: string;
   target?: string;
   connectable?: number;
+
+  isLayer: boolean = false;
 
   geometry?: MxGeometry;
   children: MxCellChild[] = [];

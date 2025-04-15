@@ -21,6 +21,13 @@ export class ObjectNode {
   }
 
   toXmlString(): string {
+    
+    // Remove the id from the cell if it matches the object node's id and the cell's parent is '0'
+    if(this.id === this.cell.id && this.cell.parent === '0') {
+      this.cell.id = undefined;
+      this.cell.isLayer = true;
+    }
+
     return `<object id="${this.id}">${this.cell.toXmlString()}</object>`;
   }
 }
