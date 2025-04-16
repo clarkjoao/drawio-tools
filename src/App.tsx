@@ -5,11 +5,11 @@ import { formatXml } from './utils/xml';
 export default function App() {
   const [xmlInput, setXmlInput] = useState('');
   const [copied, setCopied] = useState(false);
-  const [errors, setErrors] = useState<string[]>([]);
   const [layers, setLayers] = useState<LayerInfo[]>([]);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  // Atualiza camadas sempre que o XML muda
   useEffect(() => {
     try {
       const builder = MxBuilder.fromXml(xmlInput);
@@ -18,9 +18,11 @@ export default function App() {
       if (detectedLayers.length > 0) {
         setSelectedLayerId(detectedLayers[0].id);
       }
+      setAvailableTags(builder.listTags());
     } catch {
       setLayers([]);
       setSelectedLayerId(null);
+      setAvailableTags([]);
     }
   }, [xmlInput]);
 
@@ -38,8 +40,13 @@ export default function App() {
     try {
       const builder = MxBuilder.fromXml(xmlInput);
       const selectedLayer = builder.listLayers().find(l => l.id === selectedLayerId);
+      const id = 'template-' + Date.now();
 
-      builder.addTemplate('template-' + Date.now(), 300, 200, selectedLayer);
+      const userObject = builder.createTaggedTemplate(id, 300, 200, selectedLayer, selectedTags);
+      builder.model.root.add(userObject);
+
+      
+
       setXmlInput(formatXml(builder.toXmlString()));
     } catch (e: any) {
       alert('❌ Erro ao adicionar template: ' + e.message);
@@ -70,6 +77,24 @@ export default function App() {
               <option key={layer.id} value={layer.id}>
                 {layer.label || layer.id}
               </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {availableTags.length > 0 && (
+        <div>
+          <label className="font-semibold block mb-1">Tags para aplicar ao novo template:</label>
+          <select
+            multiple
+            className="p-2 border rounded w-full max-w-sm"
+            value={selectedTags}
+            onChange={(e) =>
+              setSelectedTags(Array.from(e.target.selectedOptions, option => option.value))
+            }
+          >
+            {availableTags.map(tag => (
+              <option key={tag} value={tag}>{tag}</option>
             ))}
           </select>
         </div>

@@ -105,7 +105,74 @@ export class MxBuilder {
     return this;
   }
 
+  createTaggedTemplate(
+    id: string,
+    x: number,
+    y: number,
+    layer: LayerInfo | undefined,
+    tags: string[]
+  ): UserObject {
+    const parentId = layer?.id ?? '1';
+  
+    const cell = new MxCell({
+      id,
+      value: 'Novo Template',
+      style: 'rounded=1;whiteSpace=wrap;html=1;',
+      vertex: 1,
+      parent: parentId
+    });
+  
+    cell.setGeometry(new MxGeometry({ x, y, width: 100, height: 40 }));
+  
+    return new UserObject(
+      {
+        id,
+        label: '',
+        tags: tags.join(' ')
+      },
+      cell
+    );
+  }
+
+  
+  listTags(): string[] {
+    const tags = new Set<string>();
+    for (const child of this.model.root.children) {
+      if (child instanceof UserObject) {
+        child.tags.forEach(tag => tags.add(tag));
+      }
+    }
+    return [...tags];
+  }
+  
+  addTagToUserObject(id: string, tag: string): boolean {
+    const userObj = this.model.root.children.find(
+      (c): c is UserObject => c instanceof UserObject && c.id === id
+    );
+    if (!userObj) return false;
+    userObj.addTag(tag);
+    return true;
+  }
+  
+  removeTagFromUserObject(id: string, tag: string): boolean {
+    const userObj = this.model.root.children.find(
+      (c): c is UserObject => c instanceof UserObject && c.id === id
+    );
+    if (!userObj) return false;
+    userObj.removeTag(tag);
+    return true;
+  }
+
+  wrapAsUserObject(id: string, cell: MxCell, options?: { tags?: string[] }): UserObject {
+    return new UserObject({
+      id,
+      label: '',
+      tags: options?.tags?.join(' '),
+    }, cell);
+  }
+  
+
   toXmlString(): string {
-    return '<?xml version="1.0"?>\n' + this.model.toXmlString();
+    return this.model.toXmlString();
   }
 }
