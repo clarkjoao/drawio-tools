@@ -42,8 +42,8 @@ export default function App() {
       const selectedLayer = builder.listLayers().find(l => l.id === selectedLayerId);
       const id = 'template-' + Date.now();
 
-      const userObject = builder.createTaggedTemplate(id, 300, 200, selectedLayer, selectedTags);
-      builder.model.root.add(userObject);
+      // const userObject = builder.createTaggedTemplate(id, 300, 200, selectedLayer, selectedTags);
+      // builder.model.root.add(userObject);
 
       
 
@@ -116,6 +116,20 @@ export default function App() {
           ➕ Adicionar Template
         </button>
       </div>
+
+      <h1>layers: {xmlInput && MxBuilder.fromXml(xmlInput).listLayers().length}</h1>
+      <h2 className="font-semibold">XML Gerado:</h2>
+        
+        {xmlInput && MxBuilder.fromXml(xmlInput).listNodes().length}
+        <h2 className="font-semibold">Lista de nós:</h2>
+        <ul>
+          {xmlInput && MxBuilder.fromXml(xmlInput).listNodes().map(node => (
+            <li key={node?.id} className="border p-2 my-2">
+              <h3 className="font-semibold">{node?.id}</h3>
+              <p className="text-sm">{node?.label}</p>
+            </li>
+          ))}
+        </ul>
     </div>
   );
 }

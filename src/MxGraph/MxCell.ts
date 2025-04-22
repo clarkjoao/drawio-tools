@@ -4,6 +4,7 @@ export type MxCellChild = { toXmlString: () => string } | string;
 
 export class MxCell {
   id?: string;
+  label?: string;
   value?: string;
   style?: string;
   parent?: string;
@@ -19,6 +20,12 @@ export class MxCell {
   children: MxCellChild[] = [];
 
   constructor(attributes: Partial<MxCell>) {
+    // if id is 0, is default layer
+    // if parent is 0, is default layer
+    if(attributes.id === '0' || attributes.parent === '0') {
+      attributes.isLayer = true;
+    }
+
     Object.assign(this, attributes);
   }
 
@@ -27,22 +34,31 @@ export class MxCell {
     for (const attr of el.attributes) {
       attrs[attr.name] = attr.value;
     }
-
+    
     const cell = new MxCell(attrs);
 
     const geometryEl = el.getElementsByTagName('mxGeometry')[0];
+
     if (geometryEl) {
       cell.setGeometry(MxGeometry.fromElement(geometryEl));
+      cell.isLayer = false; // Set isLayer to false if geometry is present
     }
 
     return cell;
   }
 
   setGeometry(geometry: MxGeometry) {
+    if(this.isLayer){
+      throw new Error('Cannot set geometry for a layer cell');
+    }
+
     this.geometry = geometry;
   }
 
   addChild(child: MxCellChild) {
+    if (this.isLayer) {
+      throw new Error('Cannot add child to a layer cell');
+    }
     this.children.push(child);
   }
 

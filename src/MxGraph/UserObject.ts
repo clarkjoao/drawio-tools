@@ -1,32 +1,70 @@
 import { MxCell } from './MxCell';
 
+type Action =
+  | { open: string }
+  | { wait: number }
+  | { viewbox: { x: number; y: number; width: number; height: number; border?: number } }
+  | { tags: { toggle?: string[]; hidden?: string[]; visible?: string[] } }
+  | { [key in DrawioCommand]?: Selector };
+
+type DrawioCommand =
+  | 'toggle'
+  | 'show'
+  | 'hide'
+  | 'style'
+  | 'toggleStyle'
+  | 'opacity'
+  | 'wipeIn'
+  | 'wipeOut'
+  | 'fadeIn'
+  | 'fadeOut'
+  | 'highlight'
+  | 'select'
+  | 'scroll';
+
+type Selector = {
+  cells?: string[];
+  excludeCells?: string[];
+  tags?: string[];
+  key?: string;
+  value?: string;
+  delay?: number;
+  steps?: number;
+};
+
 export class UserObject {
   id: string;
-  label: string;
+  label?: string;
   tags: Set<string> = new Set();
   link?: string;
-  cell?: MxCell;
+  cell!: MxCell;
 
-  constructor(attrs: { id: string; label: string; tags?: string; link?: string }, cell?: MxCell) {
-    this.id = attrs.id;
-    this.label = attrs.label;
-    this.link = attrs.link;
-    if (attrs.tags) {
-      this.setTagsFromString(attrs.tags);
+  constructor(attributes: Partial<UserObject>) {
+    this.id = attributes.id || '';
+    if (typeof attributes.tags === 'string') {
+      this.setTagsFromString(attributes.tags);
+    } else if (attributes.tags instanceof Set) {
+      this.tags = attributes.tags;
     }
-    this.cell = cell;
+    if (!attributes.cell) {
+      throw new Error('Cell is required');
+    }
+
+    Object.assign(this, attributes);
   }
 
   static fromElement(el: Element): UserObject {
     const id = el.getAttribute('id') || '';
     const label = el.getAttribute('label') || '';
-    const tags = el.getAttribute('tags') || undefined;
     const link = el.getAttribute('link') || undefined;
-
     const cellEl = el.getElementsByTagName('mxCell')[0];
     const cell = MxCell.fromElement(cellEl);
-
-    return new UserObject({ id, label, tags, link }, cell);
+    const tagsString = el.getAttribute('tags') || '';
+    const tags = new Set<string>();
+    if (tagsString) {
+      tagsString.split(/\s+/).forEach(tag => tags.add(tag.trim()));
+    }
+    return new UserObject({ id, label, tags, link, cell });
   }
 
   setTagsFromString(tags: string) {
@@ -49,22 +87,63 @@ export class UserObject {
     return this.tags.has(tag);
   }
 
+  setLink(link: string) {
+    this.link = link;
+  }
+
+  getLink(): string | undefined {
+    return this.link;
+  }
+
   setCell(cell: MxCell) {
     this.cell = cell;
   }
 
-  toXmlString(): string {
-    const attrs = [
-      `id="${this.id}"`,
-      `label="${this.label}"`,
-      this.tags.size > 0 && `tags="${this.getTagsAsString()}"`,
-      this.link && `link="${this.link}"`
-    ].filter(Boolean).join(' ');
+  getParsedLink(): { title?: string; actions: Action[] } {
+    if (!this.link?.startsWith('data:action/json,')) return { actions: [] };
+    try {
+      const raw = decodeURIComponent(this.link.slice(17));
+      return JSON.parse(raw);
+    } catch {
+      return { actions: [] };
+    }
+  }
 
+  addAction(action: Action) {
+    const data = this.getParsedLink();
+    if (!data.actions) data.actions = [];
+    data.actions.push(action);
+    this.link = UserObject.serializeLink(data);
+  }
+
+  static serializeLink(data: { title?: string; actions: Action[] }): string {
+    return 'data:action/json,' + encodeURIComponent(JSON.stringify(data));
+  }
+
+  toXmlString(): string {
+    const escapeXml = (str: string) =>
+      str
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+  
+    const attrs = [
+      `id="${escapeXml(this.id)}"`,
+      this.label !== undefined && `label="${escapeXml(this.label)}"`,
+      this.tags.size > 0 && `tags="${escapeXml(this.getTagsAsString())}"`,
+      this.link && `link="${escapeXml(this.link)}"`
+    ]
+      .filter(Boolean)
+      .join(' ');
+  
+    // Remove ID duplicado na célula se for o mesmo do UserObject
     if (this.cell?.id === this.id) {
       this.cell.id = undefined;
     }
-
+  
     return `<UserObject ${attrs}>${this.cell?.toXmlString() || ''}</UserObject>`;
   }
+  
 }
