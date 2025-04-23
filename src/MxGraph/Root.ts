@@ -6,10 +6,9 @@ export class Root {
   }
 
   toXmlString(): string {
-    const childrenXml = this.children.map(c =>
-      typeof c.toXmlString === 'function' ? c.toXmlString() : ''
-    ).join('');
+    const childrenXml = this.children
+      .map((c) => (typeof c.toXmlString === "function" ? c.toXmlString() : ""))
+      .join("");
     return `<root>${childrenXml}</root>`;
   }
-  
 }

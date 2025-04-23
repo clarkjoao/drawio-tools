@@ -1,8 +1,8 @@
-import { MxGraphModel } from './MxGraphModel';
-import { MxCell } from './MxCell';
-import { UserObject } from './UserObject';
-import { ObjectNode } from './ObjectNode';
-import { generateDrawioId } from '../utils/drawio';
+import { MxGraphModel } from "./MxGraphModel";
+import { MxCell } from "./MxCell";
+import { UserObject } from "./UserObject";
+import { ObjectNode } from "./ObjectNode";
+import { generateDrawioId } from "../utils/drawio";
 
 export interface NodeInfo {
   id: string;
@@ -33,9 +33,9 @@ export class MxBuilder {
 
   static fromXml(xml: string): MxBuilder {
     const parser = new DOMParser();
-    const doc = parser.parseFromString(xml, 'application/xml');
-    const graphModelElement = doc.getElementsByTagName('mxGraphModel')[0];
-    const rootElement = graphModelElement.getElementsByTagName('root')[0];
+    const doc = parser.parseFromString(xml, "application/xml");
+    const graphModelElement = doc.getElementsByTagName("mxGraphModel")[0];
+    const rootElement = graphModelElement.getElementsByTagName("root")[0];
 
     const attrs: Record<string, any> = {};
     for (const attr of graphModelElement.attributes) {
@@ -46,37 +46,45 @@ export class MxBuilder {
 
     for (const child of rootElement.children) {
       switch (child.tagName) {
-        case 'mxCell': {
+        case "mxCell": {
           const cell = MxCell.fromElement(child);
 
           // we are avoiding to add the default layer, that is the one with id 0
-          if (cell.isLayer && cell.id !== '0') {
+          if (cell.isLayer && cell.id !== "0") {
             // Here we are defaulting to a layer id if the cell id is not set
-            const wrapped = new ObjectNode({ id: cell.id ?? generateDrawioId('layer'), cell });
+            const wrapped = new ObjectNode({ id: cell.id ?? generateDrawioId("layer"), cell });
             builder.model.root.add(wrapped);
 
-            builder.layers.push({ id: wrapped.id, label: wrapped.label || cell.value || wrapped.id, node: wrapped });
+            builder.layers.push({
+              id: wrapped.id,
+              label: wrapped.label || cell.value || wrapped.id,
+              node: wrapped
+            });
           } else {
             builder.model.root.add(cell);
           }
           break;
         }
 
-        case 'object': {
+        case "object": {
           const node = ObjectNode.fromElement(child);
 
           builder.model.root.add(node);
-          
+
           const isLayer = node.cell.isLayer;
 
           if (isLayer) {
-            builder.layers.push({ id: node.id, label: node.label || child.getAttribute('label') || node.id, node });
+            builder.layers.push({
+              id: node.id,
+              label: node.label || child.getAttribute("label") || node.id,
+              node
+            });
           }
 
           break;
         }
 
-        case 'UserObject':
+        case "UserObject":
           builder.model.root.add(UserObject.fromElement(child));
           break;
       }
@@ -87,15 +95,15 @@ export class MxBuilder {
 
   listNodes(layerId?: string): NodeInfo[] {
     const result: NodeInfo[] = [];
-  
+
     for (const child of this.model.root.children) {
       if (
-        (child instanceof ObjectNode && (child.cell?.isLayer || child.cell?.parent === '0')) ||
-        (child instanceof MxCell && (child.isLayer || child.parent === '0'))
+        (child instanceof ObjectNode && (child.cell?.isLayer || child.cell?.parent === "0")) ||
+        (child instanceof MxCell && (child.isLayer || child.parent === "0"))
       ) {
         continue;
       }
-  
+
       // if (
       //   child instanceof ObjectNode &&
       //   child.cell?.style === 'group' &&
@@ -111,19 +119,23 @@ export class MxBuilder {
           : child instanceof MxCell
             ? child.parent
             : undefined;
-  
+
       if (layerId && parentId !== layerId) {
         continue;
       }
 
-      const label = child instanceof ObjectNode ? child.label : child instanceof UserObject ? child.label : child.value;
-  
+      const label =
+        child instanceof ObjectNode
+          ? child.label
+          : child instanceof UserObject
+            ? child.label
+            : child.value;
+
       result.push({ id: child.id, label, node: child });
     }
-  
+
     return result;
   }
-  
 
   listLayers(): LayerInfo[] {
     return this.layers;
@@ -133,7 +145,7 @@ export class MxBuilder {
     const tags = new Set<string>();
     for (const child of this.model.root.children) {
       if (child instanceof UserObject) {
-        child.tags.forEach(tag => tags.add(tag));
+        child.tags.forEach((tag) => tags.add(tag));
       }
     }
     return [...tags];

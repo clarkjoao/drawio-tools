@@ -1,4 +1,4 @@
-import { MxPoint } from './MxPoint';
+import { MxPoint } from "./MxPoint";
 
 export class MxGeometry {
   x?: number;
@@ -6,7 +6,7 @@ export class MxGeometry {
   width?: number;
   height?: number;
   relative?: number;
-  as: string = 'geometry';
+  as: string = "geometry";
   points: MxPoint[] = [];
 
   constructor(attrs: Partial<MxGeometry> = {}) {
@@ -23,7 +23,7 @@ export class MxGeometry {
 
     const array = el.querySelector('Array[as="points"]');
     if (array) {
-      for (const pt of array.getElementsByTagName('mxPoint')) {
+      for (const pt of array.getElementsByTagName("mxPoint")) {
         geometry.points.push(MxPoint.fromElement(pt));
       }
     }
@@ -43,9 +43,9 @@ export class MxGeometry {
     if (this.height !== undefined) attrs += ` height="${this.height}"`;
     if (this.relative !== undefined) attrs += ` relative="${this.relative}"`;
 
-    let points = '';
+    let points = "";
     if (this.points?.length) {
-      const pointsXml = this.points.map(p => p.toXmlString()).join('');
+      const pointsXml = this.points.map((p) => p.toXmlString()).join("");
       points = `<Array as="points">${pointsXml}</Array>`;
     }
 

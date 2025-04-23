@@ -1,4 +1,4 @@
-import { Root } from './Root';
+import { Root } from "./Root";
 
 export class MxGraphModel {
   dx?: number;
@@ -41,9 +41,10 @@ export class MxGraphModel {
       this.pageHeight !== undefined && `pageHeight="${this.pageHeight}"`,
       this.math !== undefined && `math="${this.math}"`,
       this.shadow !== undefined && `shadow="${this.shadow}"`
-    ].filter(Boolean).join(' ');
-  
+    ]
+      .filter(Boolean)
+      .join(" ");
+
     return `<mxGraphModel ${attrs}>${this.root.toXmlString()}</mxGraphModel>`;
   }
-  
 }

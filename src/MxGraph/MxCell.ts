@@ -1,4 +1,4 @@
-import { MxGeometry } from './MxGeometry';
+import { MxGeometry } from "./MxGeometry";
 
 export type MxCellChild = { toXmlString: () => string } | string;
 
@@ -22,7 +22,7 @@ export class MxCell {
   constructor(attributes: Partial<MxCell>) {
     // if id is 0, is default layer
     // if parent is 0, is default layer
-    if(attributes.id === '0' || attributes.parent === '0') {
+    if (attributes.id === "0" || attributes.parent === "0") {
       attributes.isLayer = true;
     }
 
@@ -34,10 +34,10 @@ export class MxCell {
     for (const attr of el.attributes) {
       attrs[attr.name] = attr.value;
     }
-    
+
     const cell = new MxCell(attrs);
 
-    const geometryEl = el.getElementsByTagName('mxGeometry')[0];
+    const geometryEl = el.getElementsByTagName("mxGeometry")[0];
 
     if (geometryEl) {
       cell.setGeometry(MxGeometry.fromElement(geometryEl));
@@ -48,8 +48,8 @@ export class MxCell {
   }
 
   setGeometry(geometry: MxGeometry) {
-    if(this.isLayer){
-      throw new Error('Cannot set geometry for a layer cell');
+    if (this.isLayer) {
+      throw new Error("Cannot set geometry for a layer cell");
     }
 
     this.geometry = geometry;
@@ -57,7 +57,7 @@ export class MxCell {
 
   addChild(child: MxCellChild) {
     if (this.isLayer) {
-      throw new Error('Cannot add child to a layer cell');
+      throw new Error("Cannot add child to a layer cell");
     }
     this.children.push(child);
   }
@@ -73,12 +73,14 @@ export class MxCell {
       this.source && `source="${this.source}"`,
       this.target !== undefined && `target="${this.target}"`,
       this.connectable !== undefined && `connectable="${this.connectable}"`
-    ].filter(Boolean).join(' ');
+    ]
+      .filter(Boolean)
+      .join(" ");
 
-    const geometryXml = this.geometry?.toXmlString() || '';
+    const geometryXml = this.geometry?.toXmlString() || "";
     const childrenXml = this.children
-      .map(child => typeof child === 'string' ? child : child.toXmlString())
-      .join('');
+      .map((child) => (typeof child === "string" ? child : child.toXmlString()))
+      .join("");
 
     return `<mxCell ${attrs}>${geometryXml}${childrenXml}</mxCell>`;
   }

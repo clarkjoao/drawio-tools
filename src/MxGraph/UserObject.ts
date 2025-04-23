@@ -1,4 +1,4 @@
-import { MxCell } from './MxCell';
+import { MxCell } from "./MxCell";
 
 type Action =
   | { open: string }
@@ -8,19 +8,19 @@ type Action =
   | { [key in DrawioCommand]?: Selector };
 
 type DrawioCommand =
-  | 'toggle'
-  | 'show'
-  | 'hide'
-  | 'style'
-  | 'toggleStyle'
-  | 'opacity'
-  | 'wipeIn'
-  | 'wipeOut'
-  | 'fadeIn'
-  | 'fadeOut'
-  | 'highlight'
-  | 'select'
-  | 'scroll';
+  | "toggle"
+  | "show"
+  | "hide"
+  | "style"
+  | "toggleStyle"
+  | "opacity"
+  | "wipeIn"
+  | "wipeOut"
+  | "fadeIn"
+  | "fadeOut"
+  | "highlight"
+  | "select"
+  | "scroll";
 
 type Selector = {
   cells?: string[];
@@ -40,39 +40,39 @@ export class UserObject {
   cell!: MxCell;
 
   constructor(attributes: Partial<UserObject>) {
-    this.id = attributes.id || '';
-    if (typeof attributes.tags === 'string') {
+    this.id = attributes.id || "";
+    if (typeof attributes.tags === "string") {
       this.setTagsFromString(attributes.tags);
     } else if (attributes.tags instanceof Set) {
       this.tags = attributes.tags;
     }
     if (!attributes.cell) {
-      throw new Error('Cell is required');
+      throw new Error("Cell is required");
     }
 
     Object.assign(this, attributes);
   }
 
   static fromElement(el: Element): UserObject {
-    const id = el.getAttribute('id') || '';
-    const label = el.getAttribute('label') || '';
-    const link = el.getAttribute('link') || undefined;
-    const cellEl = el.getElementsByTagName('mxCell')[0];
+    const id = el.getAttribute("id") || "";
+    const label = el.getAttribute("label") || "";
+    const link = el.getAttribute("link") || undefined;
+    const cellEl = el.getElementsByTagName("mxCell")[0];
     const cell = MxCell.fromElement(cellEl);
-    const tagsString = el.getAttribute('tags') || '';
+    const tagsString = el.getAttribute("tags") || "";
     const tags = new Set<string>();
     if (tagsString) {
-      tagsString.split(/\s+/).forEach(tag => tags.add(tag.trim()));
+      tagsString.split(/\s+/).forEach((tag) => tags.add(tag.trim()));
     }
     return new UserObject({ id, label, tags, link, cell });
   }
 
   setTagsFromString(tags: string) {
-    tags.split(/\s+/).forEach(tag => this.tags.add(tag.trim()));
+    tags.split(/\s+/).forEach((tag) => this.tags.add(tag.trim()));
   }
 
   getTagsAsString(): string {
-    return [...this.tags].join(' ');
+    return [...this.tags].join(" ");
   }
 
   addTag(tag: string) {
@@ -100,7 +100,7 @@ export class UserObject {
   }
 
   getParsedLink(): { title?: string; actions: Action[] } {
-    if (!this.link?.startsWith('data:action/json,')) return { actions: [] };
+    if (!this.link?.startsWith("data:action/json,")) return { actions: [] };
     try {
       const raw = decodeURIComponent(this.link.slice(17));
       return JSON.parse(raw);
@@ -117,18 +117,18 @@ export class UserObject {
   }
 
   static serializeLink(data: { title?: string; actions: Action[] }): string {
-    return 'data:action/json,' + encodeURIComponent(JSON.stringify(data));
+    return "data:action/json," + encodeURIComponent(JSON.stringify(data));
   }
 
   toXmlString(): string {
     const escapeXml = (str: string) =>
       str
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-  
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
     const attrs = [
       `id="${escapeXml(this.id)}"`,
       this.label !== undefined && `label="${escapeXml(this.label)}"`,
@@ -136,14 +136,13 @@ export class UserObject {
       this.link && `link="${escapeXml(this.link)}"`
     ]
       .filter(Boolean)
-      .join(' ');
-  
+      .join(" ");
+
     // Remove ID duplicado na célula se for o mesmo do UserObject
     if (this.cell?.id === this.id) {
       this.cell.id = undefined;
     }
-  
-    return `<UserObject ${attrs}>${this.cell?.toXmlString() || ''}</UserObject>`;
+
+    return `<UserObject ${attrs}>${this.cell?.toXmlString() || ""}</UserObject>`;
   }
-  
 }
