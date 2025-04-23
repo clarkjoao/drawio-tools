@@ -14,7 +14,7 @@ const NodeBrowser = ({ data, onSelectNode }: NodeBrowserProps) => {
   const [selectedLayer, setSelectedLayer] = useState<string>(layers[0]?.id || "");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  const allNodes = useMemo(() => data.listNodes(), [data?.model]);
+  const allNodes = useMemo(() => data.listNodes(), [data]);
 
   const nodesInLayer = useMemo(() => {
     if (!selectedLayer) return [];
@@ -100,7 +100,7 @@ const NodeBrowser = ({ data, onSelectNode }: NodeBrowserProps) => {
           <div className="text-xs font-bold text-gray-600 tracking-wide px-4 py-3 border-b border-gray-200 bg-white/70">
             NODE PROPERTIES
           </div>
-          <NodePropertiesPanel selectedNode={selectedNode} />
+          <NodePropertiesPanel selectedNode={selectedNode} builder={data} />
         </div>
       </div>
     </div>

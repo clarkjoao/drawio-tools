@@ -4,21 +4,27 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ObjectNode } from "@/MxGraph/ObjectNode";
 import { UserObject } from "@/MxGraph/UserObject";
-import { NodeInfo } from "@/MxGraph/MxBuilder";
+import { MxBuilder, NodeInfo } from "@/MxGraph/MxBuilder";
+import { NodeManager } from "@/MxGraph/NodeManager";
 
 interface NodePropertiesPanelProps {
   selectedNode: NodeInfo | null;
+  builder: MxBuilder; // MxBuilder
   onUpdate?: (updated: NodeInfo) => void;
 }
 
-const NodePropertiesPanel = ({ selectedNode, onUpdate }: NodePropertiesPanelProps) => {
+const NodePropertiesPanel = ({ selectedNode, builder, onUpdate }: NodePropertiesPanelProps) => {
   const [editedLabel, setEditedLabel] = useState("");
   const [editedLink, setEditedLink] = useState("");
   const [editedId, setEditedId] = useState("");
+  const [editedParent, setEditedParent] = useState("");
+
+  const manager = NodeManager(builder);
 
   useEffect(() => {
     if (selectedNode) {
       setEditedId(selectedNode.cell.id || "");
+      setEditedParent(selectedNode.cell.parent || "");
 
       if (
         selectedNode.wrapper instanceof ObjectNode ||
@@ -35,23 +41,36 @@ const NodePropertiesPanel = ({ selectedNode, onUpdate }: NodePropertiesPanelProp
   const handleSave = () => {
     if (!selectedNode) return;
 
-    const updated = { ...selectedNode };
-    updated.cell.id = editedId;
+    const currentId = selectedNode.cell.id;
+    if (!currentId) return;
 
-    if (updated.wrapper instanceof ObjectNode || updated.wrapper instanceof UserObject) {
-      updated.wrapper.label = editedLabel;
-      if (updated.wrapper instanceof UserObject) {
-        updated.wrapper.setLink(editedLink);
-      }
+    if (editedId && editedId !== currentId) {
+      manager.updateNodeId(currentId, editedId);
     }
 
-    onUpdate?.(updated);
+    if (editedParent && editedParent !== selectedNode.cell.parent) {
+      debugger;
+      manager.moveNodeToLayer(editedId || currentId, editedParent);
+    }
+
+    if (selectedNode.wrapper instanceof ObjectNode || selectedNode.wrapper instanceof UserObject) {
+      selectedNode.wrapper.label = editedLabel;
+    }
+
+    if (selectedNode.wrapper instanceof UserObject) {
+      selectedNode.wrapper.setLink(editedLink);
+    }
+
+    const updated = builder.getNode(editedId || currentId);
+    if (updated && onUpdate) onUpdate(updated);
   };
 
   const renderDetails = () => {
     if (!selectedNode) return null;
 
     const { cell, wrapper } = selectedNode;
+
+    const allLayers = builder.listLayers();
 
     return (
       <div className="space-y-4">
@@ -74,6 +93,22 @@ const NodePropertiesPanel = ({ selectedNode, onUpdate }: NodePropertiesPanelProp
           </div>
         )}
 
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">Parent Layer</label>
+          <select
+            className="block w-full rounded border-gray-300 text-sm shadow-sm focus:ring focus:ring-blue-200"
+            value={editedParent}
+            onChange={(e) => setEditedParent(e.target.value)}
+          >
+            <option value="">-- Select Layer --</option>
+            {allLayers.map((layer) => (
+              <option key={layer.id} value={layer.id}>
+                {layer.label || layer.id}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {cell.value && (
           <div className="text-sm">
             <span className="font-semibold text-gray-700">Value:</span>{" "}
@@ -84,12 +119,6 @@ const NodePropertiesPanel = ({ selectedNode, onUpdate }: NodePropertiesPanelProp
           <div className="text-sm">
             <span className="font-semibold text-gray-700">Style:</span>{" "}
             <span className="text-gray-500">{cell.style}</span>
-          </div>
-        )}
-        {cell.parent && (
-          <div className="text-sm">
-            <span className="font-semibold text-gray-700">Parent:</span>{" "}
-            <span className="text-gray-500">{cell.parent}</span>
           </div>
         )}
 

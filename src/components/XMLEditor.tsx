@@ -15,11 +15,19 @@ export default function XMLEditor({ onParseXml, onExport }: IXMLEditor) {
     onParseXml(xmlInput);
   };
 
-  const exportXml = () => {
+  const exportXml = async () => {
     try {
       const xml = onExport();
-      console.log("Exported XML:", xml);
       setXmlInput(xml);
+
+      if (monacoEditorRef.current) {
+        setTimeout(() => {
+          monacoEditorRef.current.getAction("editor.action.formatDocument").run();
+        }, 50);
+      }
+
+      await navigator.clipboard.writeText(xml);
+      console.log("XML copied to clipboard");
     } catch (error) {
       console.error("Error exporting XML:", error);
     }

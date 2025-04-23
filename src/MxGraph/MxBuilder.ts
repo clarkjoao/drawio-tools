@@ -127,6 +127,10 @@ export class MxBuilder {
     return result;
   }
 
+  getNode(id: string) {
+    return this.listNodes().find((node) => node.id === id) || null;
+  }
+
   ensureUserObject(nodeId: string): UserObject {
     const child = this.model.root.children.find((c) => c.id === nodeId);
     if (!child) throw new Error("Node not found: " + nodeId);
