@@ -1,11 +1,29 @@
-import { useState, useEffect } from "react";
-import { MxBuilder, LayerInfo } from "../MxGraph/MxBuilder";
-import { formatXml } from "../utils/xml";
+import { useState } from "react";
+import { MxBuilder } from "../MxGraph/MxBuilder";
 import XMLEditor from "@/components/XMLEditor";
 import NodeBrowser from "@/components/NodeBrowser";
 
 export default function App() {
   const [builder, setBuilder] = useState<MxBuilder | null>(null);
+
+  const handleParseXml = (xmlString: string) => {
+    try {
+      const newBuilder = MxBuilder.fromXml(xmlString);
+      console.log("Parsed XML:", newBuilder);
+      setBuilder(newBuilder);
+    } catch (e) {
+      console.error("Erro ao fazer parse do XML", e);
+    }
+  };
+
+  const handleExport = () => {
+    if (!builder) {
+      console.error("No builder available to export");
+      return "";
+    }
+
+    return builder.toXmlString();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -18,7 +36,7 @@ export default function App() {
           <div className="flex flex-row gap-6 my-4 w-full">
             <div className="flex flex-col gap-6 my-4 w-full">
               <div className="bg-white dark:bg-[#222] border border-gray-200/60 shadow-lg rounded-lg min-h-[420px] flex flex-col">
-                <XMLEditor onParse={setBuilder} />
+                <XMLEditor onParseXml={handleParseXml} onExport={handleExport} />
               </div>
 
               <div
@@ -28,9 +46,9 @@ export default function App() {
                   <h2 className="text-lg font-bold text-gray-800 tracking-tight">Node Browser</h2>
                 </div>
                 <div className="flex-1 px-2 pt-3">
-                  {true ? (
+                  {builder ? (
                     <NodeBrowser
-                      data={undefined}
+                      data={builder}
                       onSelectNode={(node) => {
                         console.log("Selected node:", node);
                       }}

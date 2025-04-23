@@ -1,43 +1,28 @@
 import Editor from "@monaco-editor/react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "./ui/button";
-import { MxBuilder } from "@/MxGraph/MxBuilder";
 
 export interface IXMLEditor {
-  onParseXml: (builder: MxBuilder) => void;
-  builder: MxBuilder;
+  onParseXml: (xmlString: string) => void;
+  onExport: () => string;
 }
-
-export default function XMLEditor({ onParseXml, onExportXml }: IXMLEditor) {
+export default function XMLEditor({ onParseXml, onExport }: IXMLEditor) {
   const monacoEditorRef = useRef<any>(null);
   const [xmlInput, setXmlInput] = useState<string>("");
 
   const parseXml = () => {
-    try {
-      if (!xmlInput.trim()) {
-        return;
-      }
-      onParseXml(MxBuilder.fromXml(xmlInput));
-    } catch (error) {
-      console.error("Error parsing XML:", error);
-    }
+    if (!xmlInput.trim()) return;
+    onParseXml(xmlInput);
   };
 
   const exportXml = () => {
     try {
-      if (!onExportXml) {
-        return;
-      }
-      const xml = builder.toXmlString();
+      const xml = onExport();
       setXmlInput(xml);
     } catch (error) {
       console.error("Error exporting XML:", error);
     }
   };
-
-  useEffect(() => {
-    if (builder) onParse(builder);
-  }, [builder]);
 
   return (
     <>

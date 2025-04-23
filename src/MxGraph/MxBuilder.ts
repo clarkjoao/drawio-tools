@@ -7,7 +7,8 @@ import { generateDrawioId } from "../utils/drawio";
 export interface NodeInfo {
   id: string;
   label: string;
-  node: MxCell | ObjectNode | UserObject;
+  cell: MxCell;
+  wrapper?: ObjectNode | UserObject;
 }
 
 export interface LayerInfo {
@@ -16,16 +17,9 @@ export interface LayerInfo {
   node: ObjectNode;
 }
 
-export interface GroupInfo {
-  id: string;
-  label: string;
-  node: ObjectNode;
-}
-
 export class MxBuilder {
   model: MxGraphModel;
   private layers: LayerInfo[] = [];
-  // private groups: GroupInfo[] = [];
 
   constructor(model?: MxGraphModel) {
     this.model = model || new MxGraphModel();
@@ -68,7 +62,6 @@ export class MxBuilder {
 
         case "object": {
           const node = ObjectNode.fromElement(child);
-
           builder.model.root.add(node);
 
           const isLayer = node.cell.isLayer;
@@ -80,7 +73,6 @@ export class MxBuilder {
               node
             });
           }
-
           break;
         }
 
@@ -100,19 +92,9 @@ export class MxBuilder {
       if (
         (child instanceof ObjectNode && (child.cell?.isLayer || child.cell?.parent === "0")) ||
         (child instanceof MxCell && (child.isLayer || child.parent === "0"))
-      ) {
+      )
         continue;
-      }
 
-      // if (
-      //   child instanceof ObjectNode &&
-      //   child.cell?.style === 'group' &&
-      //   child.cell?.connectable === 0
-      // ) {
-      //   continue;
-      // }
-
-      // Parent id aways are on cell
       const parentId =
         child instanceof ObjectNode || child instanceof UserObject
           ? child.cell?.parent
@@ -120,21 +102,41 @@ export class MxBuilder {
             ? child.parent
             : undefined;
 
-      if (layerId && parentId !== layerId) {
-        continue;
-      }
+      if (layerId && parentId !== layerId) continue;
 
       const label =
-        child instanceof ObjectNode
-          ? child.label
-          : child instanceof UserObject
-            ? child.label
-            : child.value;
+        child instanceof ObjectNode || child instanceof UserObject ? child.label : child.value;
+      const cell = child instanceof MxCell ? child : child.cell;
 
-      result.push({ id: child.id, label, node: child });
+      result.push({
+        id: child.id,
+        label,
+        cell,
+        wrapper: child instanceof MxCell ? undefined : child
+      });
     }
 
     return result;
+  }
+
+  ensureUserObject(nodeId: string): UserObject {
+    const child = this.model.root.children.find((c) => c.id === nodeId);
+    if (!child) throw new Error("Node not found: " + nodeId);
+
+    if (child instanceof UserObject) return child;
+
+    if (child instanceof MxCell) {
+      const userObj = new UserObject({ id: child.id, cell: child });
+      if (child.id) {
+        this.model.root.remove(child.id);
+      } else {
+        throw new Error("Child ID is undefined");
+      }
+      this.model.root.add(userObj);
+      return userObj;
+    }
+
+    throw new Error("Node cannot be wrapped");
   }
 
   listLayers(): LayerInfo[] {
