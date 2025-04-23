@@ -18,6 +18,7 @@ export default function XMLEditor({ onParseXml, onExport }: IXMLEditor) {
   const exportXml = () => {
     try {
       const xml = onExport();
+      console.log("Exported XML:", xml);
       setXmlInput(xml);
     } catch (error) {
       console.error("Error exporting XML:", error);
@@ -33,7 +34,7 @@ export default function XMLEditor({ onParseXml, onExport }: IXMLEditor) {
         <Editor
           height="215px"
           defaultLanguage="xml"
-          value={"xmlInput"}
+          value={xmlInput}
           onChange={(value) => setXmlInput(value || "")}
           onMount={(editor) => {
             monacoEditorRef.current = editor;
@@ -50,7 +51,12 @@ export default function XMLEditor({ onParseXml, onExport }: IXMLEditor) {
         <Button variant="outline" className="w-full" onClick={parseXml}>
           Parse XML
         </Button>
-        <Button variant="secondary" className="w-full" onClick={exportXml} disabled={false}>
+        <Button
+          variant="secondary"
+          className="w-full"
+          onClick={exportXml}
+          disabled={xmlInput.trim() === ""}
+        >
           Export XML
         </Button>
       </div>

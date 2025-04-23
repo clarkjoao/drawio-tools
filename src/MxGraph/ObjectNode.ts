@@ -19,6 +19,10 @@ export class ObjectNode {
 
     if (cell.isLayer) {
       cell.id = ""; // remove id from cell because it is a layer and have a object wrapped
+
+      if (!cell.value) {
+        label === "Background"; // default value for background layer
+      }
     }
 
     return new ObjectNode({ id, cell, label });

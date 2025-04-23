@@ -49,7 +49,9 @@ export class UserObject {
     if (!attributes.cell) {
       throw new Error("Cell is required");
     }
-
+    if (attributes.cell.id === this.id) {
+      attributes.cell.id = ""; // remove id from cell if it is the same as the user object
+    }
     Object.assign(this, attributes);
   }
 
@@ -102,7 +104,7 @@ export class UserObject {
   getParsedLink(): { title?: string; actions: Action[] } {
     if (!this.link?.startsWith("data:action/json,")) return { actions: [] };
     try {
-      const raw = decodeURIComponent(this.link.slice(17));
+      const raw = this.link.slice(17).replace(/&quot;/g, '"');
       return JSON.parse(raw);
     } catch {
       return { actions: [] };
@@ -117,7 +119,9 @@ export class UserObject {
   }
 
   static serializeLink(data: { title?: string; actions: Action[] }): string {
-    return "data:action/json," + encodeURIComponent(JSON.stringify(data));
+    const json = JSON.stringify(data);
+    const escaped = json.replace(/"/g, "&quot;");
+    return `data:action/json,${escaped}`;
   }
 
   toXmlString(): string {
@@ -130,10 +134,10 @@ export class UserObject {
         .replace(/>/g, "&gt;");
 
     const attrs = [
-      `id="${escapeXml(this.id)}"`,
       this.label !== undefined && `label="${escapeXml(this.label)}"`,
+      this.link && `link="${this.link}"`,
       this.tags.size > 0 && `tags="${escapeXml(this.getTagsAsString())}"`,
-      this.link && `link="${escapeXml(this.link)}"`
+      `id="${escapeXml(this.id)}"`
     ]
       .filter(Boolean)
       .join(" ");

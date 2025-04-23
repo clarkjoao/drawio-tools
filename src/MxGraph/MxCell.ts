@@ -8,7 +8,7 @@ export class MxCell {
   value?: string;
   style?: string;
   parent?: string;
-  vertex?: number;
+  vertex?: string;
   edge?: number;
   source?: string;
   target?: string;

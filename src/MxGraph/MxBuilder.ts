@@ -8,7 +8,7 @@ export interface NodeInfo {
   id: string;
   label: string;
   cell: MxCell;
-  wrapper?: ObjectNode | UserObject;
+  wrapper?: UserObject | ObjectNode;
 }
 
 export interface LayerInfo {
@@ -42,9 +42,14 @@ export class MxBuilder {
       switch (child.tagName) {
         case "mxCell": {
           const cell = MxCell.fromElement(child);
-
+          debugger;
+          if (cell.isLayer && cell.id == "0") {
+            // add default layer to the model
+            // builder.model.root.add(cell);
+            break;
+          }
           // we are avoiding to add the default layer, that is the one with id 0
-          if (cell.isLayer && cell.id !== "0") {
+          else if (cell.isLayer && cell.id !== "0") {
             // Here we are defaulting to a layer id if the cell id is not set
             const wrapped = new ObjectNode({ id: cell.id ?? generateDrawioId("layer"), cell });
             builder.model.root.add(wrapped);
@@ -55,7 +60,10 @@ export class MxBuilder {
               node: wrapped
             });
           } else {
-            builder.model.root.add(cell);
+            const wrapper = new UserObject({ id: cell.id, cell });
+
+            debugger;
+            builder.model.root.add(wrapper);
           }
           break;
         }
