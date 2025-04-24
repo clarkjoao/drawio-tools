@@ -15,7 +15,7 @@ export class MxGeometry {
 
   static fromElement(el: Element): MxGeometry {
     const attrs: any = {};
-    for (const attr of el.attributes) {
+    for (const attr of el?.attributes) {
       attrs[attr.name] = attr.value;
     }
 

@@ -63,7 +63,7 @@ export class UserObject {
     const label = el.getAttribute("label") || "";
     const link = el.getAttribute("link") || undefined;
     const cellEl = el.getElementsByTagName("mxCell")[0];
-    const cell = MxCell.fromElement(cellEl);
+    const cell = cellEl ? MxCell.fromElement(cellEl) : new MxCell({});
     const tagsString = el.getAttribute("tags") || "";
     const tags = new Set<string>();
     if (tagsString) {
@@ -126,6 +126,10 @@ export class UserObject {
 
     const alreadyEscaped = /data:action\/json,.*&quot;.*&quot;/.test(link);
     if (alreadyEscaped) return link;
+
+    if (link.startsWith("http") || link.startsWith("https")) {
+      return link;
+    }
 
     const prefix = "data:action/json,";
     if (link.startsWith(prefix)) {

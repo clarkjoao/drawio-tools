@@ -1,4 +1,5 @@
 import { MxGeometry } from "./MxGeometry";
+import { safeEscapeXml } from "./xml.utils";
 
 export type MxCellChild = { toXmlString: () => string } | string;
 
@@ -31,7 +32,7 @@ export class MxCell {
 
   static fromElement(el: Element): MxCell {
     const attrs: Record<string, any> = {};
-    for (const attr of el.attributes) {
+    for (const attr of el?.attributes) {
       attrs[attr.name] = attr.value;
     }
 
@@ -65,7 +66,8 @@ export class MxCell {
   toXmlString(): string {
     const attrs = [
       this.id && `id="${this.id}"`,
-      this.value !== undefined && `value="${this.value}"`,
+      this.value !== undefined && `value="${safeEscapeXml(this.value)}"`,
+      this.label !== undefined && `label="${safeEscapeXml(this.label)}"`,
       this.style && `style="${this.style}"`,
       this.parent && `parent="${this.parent}"`,
       this.vertex !== undefined && `vertex="${this.vertex}"`,
