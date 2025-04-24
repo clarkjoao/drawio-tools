@@ -1,5 +1,5 @@
 import { MxGeometry } from "./MxGeometry";
-import { safeEscapeXml } from "./xml.utils";
+import { escapeXml, unescapeXml } from "./xml.utils";
 
 export type MxCellChild = { toXmlString: () => string } | string;
 
@@ -33,13 +33,12 @@ export class MxCell {
   static fromElement(el: Element): MxCell {
     const attrs: Record<string, any> = {};
     for (const attr of el?.attributes) {
-      attrs[attr.name] = attr.value;
+      attrs[attr.name] = unescapeXml(attr.value);
     }
 
     const cell = new MxCell(attrs);
 
     const geometryEl = el.getElementsByTagName("mxGeometry")[0];
-
     if (geometryEl) {
       cell.setGeometry(MxGeometry.fromElement(geometryEl));
       cell.isLayer = false; // Set isLayer to false if geometry is present
@@ -52,7 +51,6 @@ export class MxCell {
     if (this.isLayer) {
       throw new Error("Cannot set geometry for a layer cell");
     }
-
     this.geometry = geometry;
   }
 
@@ -65,15 +63,15 @@ export class MxCell {
 
   toXmlString(): string {
     const attrs = [
-      this.id && `id="${this.id}"`,
-      this.value !== undefined && `value="${safeEscapeXml(this.value)}"`,
-      this.label !== undefined && `label="${safeEscapeXml(this.label)}"`,
-      this.style && `style="${this.style}"`,
-      this.parent && `parent="${this.parent}"`,
-      this.vertex !== undefined && `vertex="${this.vertex}"`,
+      this.id && `id="${escapeXml(this.id)}"`,
+      this.value !== undefined && `value="${escapeXml(this.value)}"`,
+      this.label !== undefined && `label="${escapeXml(this.label)}"`,
+      this.style && `style="${escapeXml(this.style)}"`,
+      this.parent && `parent="${escapeXml(this.parent)}"`,
+      this.vertex !== undefined && `vertex="${escapeXml(this.vertex)}"`,
       this.edge !== undefined && `edge="${this.edge}"`,
-      this.source && `source="${this.source}"`,
-      this.target !== undefined && `target="${this.target}"`,
+      this.source && `source="${escapeXml(this.source)}"`,
+      this.target !== undefined && `target="${escapeXml(this.target)}"`,
       this.connectable !== undefined && `connectable="${this.connectable}"`
     ]
       .filter(Boolean)

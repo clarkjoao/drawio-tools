@@ -54,7 +54,9 @@ const NodeBrowser = ({ data, onSelectNode }: NodeBrowserProps) => {
                   <span>
                     <Folder className="h-4 w-4 mr-2 text-gray-500" strokeWidth={2.2} />
                   </span>
-                  <span className="truncate font-medium">{layer.label}</span>
+                  <span className="truncate font-medium">
+                    {layer.label || layer.node.label || layer.node.id}
+                  </span>
                 </li>
               ))}
             </ul>

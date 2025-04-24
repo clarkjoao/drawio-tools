@@ -1,4 +1,5 @@
 import { MxCell } from "./MxCell";
+import { safeEscapeXml } from "./xml.utils";
 
 export class ObjectNode {
   id!: string;
@@ -39,6 +40,13 @@ export class ObjectNode {
       this.cell.isLayer = true;
     }
 
-    return `<object id="${this.id}">${this.cell.toXmlString()}</object>`;
+    const attrs = [
+      this.id && `id="${this.id}"`,
+      this.label !== undefined && `label="${safeEscapeXml(this.label)}"`
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return `<object ${attrs}>${this.cell.toXmlString()}</object>`;
   }
 }

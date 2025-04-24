@@ -44,13 +44,17 @@ export class MxBuilder {
           const cell = MxCell.fromElement(child);
           if (cell.isLayer && cell.id == "0") {
             // add default layer to the model
-            // builder.model.root.add(cell);
+            builder.model.root.add(cell);
             break;
           }
           // we are avoiding to add the default layer, that is the one with id 0
           else if (cell.isLayer && cell.id !== "0") {
             // Here we are defaulting to a layer id if the cell id is not set
-            const wrapped = new ObjectNode({ id: cell.id ?? generateDrawioId("layer"), cell });
+            const wrapped = new ObjectNode({
+              id: cell.id ?? generateDrawioId("layer"),
+              label: cell.value ?? undefined,
+              cell
+            });
             builder.model.root.add(wrapped);
 
             builder.layers.push({

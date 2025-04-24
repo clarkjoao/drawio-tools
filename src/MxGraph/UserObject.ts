@@ -1,4 +1,5 @@
 import { MxCell } from "./MxCell";
+import { escapeXml, escapeJsonForXmlAttribute, unescapeXml } from "./xml.utils";
 
 type Action =
   | { open: string }
@@ -52,19 +53,23 @@ export class UserObject {
     if (attributes.cell.id === this.id) {
       attributes.cell.id = ""; // remove id from cell if it is the same as the user object
     }
-    if (attributes.link) {
-      this.link = this.serializeLink(attributes.link);
-    }
     Object.assign(this, attributes);
   }
 
   static fromElement(el: Element): UserObject {
-    const id = el.getAttribute("id") || "";
-    const label = el.getAttribute("label") || "";
-    const link = el.getAttribute("link") || undefined;
+    const id = unescapeXml(el.getAttribute("id") || "");
+    const label = unescapeXml(el.getAttribute("label") || "");
+    const linkRaw = el.getAttribute("link") || undefined;
+    let link: string | undefined = undefined;
+    if (linkRaw?.startsWith("data:action/json,")) {
+      const jsonPart = linkRaw.slice(17);
+      link = `data:action/json,${unescapeXml(jsonPart)}`;
+    } else if (linkRaw) {
+      link = unescapeXml(linkRaw);
+    }
     const cellEl = el.getElementsByTagName("mxCell")[0];
     const cell = cellEl ? MxCell.fromElement(cellEl) : new MxCell({});
-    const tagsString = el.getAttribute("tags") || "";
+    const tagsString = unescapeXml(el.getAttribute("tags") || "");
     const tags = new Set<string>();
     if (tagsString) {
       tagsString.split(/\s+/).forEach((tag) => tags.add(tag.trim()));
@@ -107,7 +112,7 @@ export class UserObject {
   getParsedLink(): { title?: string; actions: Action[] } {
     if (!this.link?.startsWith("data:action/json,")) return { actions: [] };
     try {
-      const raw = this.link.slice(17).replace(/&quot;/g, '"');
+      const raw = this.link.slice(17);
       return JSON.parse(raw);
     } catch {
       return { actions: [] };
@@ -118,42 +123,34 @@ export class UserObject {
     const data = this.getParsedLink();
     if (!data.actions) data.actions = [];
     data.actions.push(action);
-    this.link = this.serializeLink(JSON.stringify(data));
+    const json = JSON.stringify(data);
+    this.link = `data:action/json,${json}`;
   }
 
-  serializeLink(link: string): string {
-    if (!link) return "";
+  static serializeLink(data: { title?: string; actions: Action[] }): string {
+    const json = JSON.stringify(data);
+    return `data:action/json,${escapeJsonForXmlAttribute(json)}`;
+  }
 
-    const alreadyEscaped = /data:action\/json,.*&quot;.*&quot;/.test(link);
-    if (alreadyEscaped) return link;
-
-    if (link.startsWith("http") || link.startsWith("https")) {
-      return link;
+  static deserializeLink(link: string): { title?: string; actions: Action[] } {
+    if (!link.startsWith("data:action/json,")) return { actions: [] };
+    const raw = link.slice(17);
+    try {
+      const json = decodeURIComponent(raw);
+      return JSON.parse(json);
+    } catch (e) {
+      console.error("Failed to parse link:", e);
+      return { actions: [] };
     }
-
-    const prefix = "data:action/json,";
-    if (link.startsWith(prefix)) {
-      const jsonPart = link.slice(prefix.length);
-      const escapedJson = jsonPart.replace(/"/g, "&quot;");
-      return `${prefix}${escapedJson}`;
-    }
-
-    const escapedJson = link.replace(/"/g, "&quot;");
-    return `${prefix}${escapedJson}`;
   }
 
   toXmlString(): string {
-    const escapeXml = (str: string) =>
-      str
-        .replace(/&/g, "&amp;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&apos;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-
     const attrs = [
       this.label !== undefined && `label="${escapeXml(this.label)}"`,
-      this.link && `link="${this.serializeLink(this.link)}"`,
+      this.link &&
+        (this.link.startsWith("data:action/json,")
+          ? `link="data:action/json,${escapeJsonForXmlAttribute(this.link.slice(17))}"`
+          : `link="${escapeXml(this.link)}"`),
       this.tags.size > 0 && `tags="${escapeXml(this.getTagsAsString())}"`,
       `id="${escapeXml(this.id)}"`
     ]

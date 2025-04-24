@@ -89,7 +89,7 @@ export default function App() {
 
       const menuItemId = generateDrawioId("menu-item-layer");
 
-      const link = JSON.stringify({
+      const link = UserObject.serializeLink({
         title: `Show Only ${layerToShow}`,
         actions: [
           {
@@ -155,6 +155,55 @@ export default function App() {
 
       builder.model.root.add(menuItemLayer);
     }
+
+    // add showAll layers
+
+    const showAllId = generateDrawioId("menu-item-show-all");
+    const showAllLink = UserObject.serializeLink({
+      title: "Show All",
+      actions: [
+        {
+          show: {
+            cells: allLayerIds
+          }
+        },
+        {
+          style: {
+            tags: ["menu-items"],
+            key: "fillColor",
+            value: "#ffffff"
+          }
+        },
+        {
+          style: {
+            cells: [showAllId],
+            key: "fillColor",
+            value: "#d3d3d3"
+          }
+        }
+      ]
+    });
+
+    const showAllLayer = new UserObject({
+      id: showAllId,
+      label: "Show All",
+      link: showAllLink,
+      tags: new Set(["menu-items"]),
+      cell: new MxCell({
+        style:
+          "text;strokeColor=none;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;overflow=hidden;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;rotatable=0;whiteSpace=wrap;html=1;rSize=5;fillColor=none;fontColor=inherit;fontSize=14;",
+        vertex: "1",
+        parent: menuComponent.id,
+        geometry: new MxGeometry({
+          y: layerExists.length * buttonHeight,
+          width: 100,
+          height: buttonHeight,
+          as: "geometry"
+        })
+      })
+    });
+
+    builder.model.root.add(showAllLayer);
 
     console.log("Custom menu with dynamic links added.");
     refreshBuilder();
