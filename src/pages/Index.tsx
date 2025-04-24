@@ -1,5 +1,4 @@
 import { MxBuilder } from "../MxGraph/MxBuilder";
-import XMLEditor from "@/components/XMLEditor";
 import NodeBrowser from "@/components/NodeBrowser";
 import { Button } from "@/components/ui/button";
 import { MxCell } from "@/MxGraph/MxCell";
@@ -8,6 +7,7 @@ import { MxGeometry } from "@/MxGraph/MxGeometry";
 import { generateDrawioId } from "@/utils/drawio";
 import { UserObject } from "@/MxGraph/UserObject";
 import { useBuilder } from "@/context/BuilderContext";
+import XMLEditor from "@/components/XMLEditor";
 
 export default function App() {
   const { builder, setBuilder, refreshBuilder } = useBuilder();
@@ -219,9 +219,11 @@ export default function App() {
 
           <div className="flex flex-row gap-6 my-4 w-full">
             <div className="flex flex-col gap-6 my-4 w-full">
-              <div className="bg-white dark:bg-[#222] border border-gray-200/60 shadow-lg rounded-lg min-h-[420px] flex flex-col">
-                <XMLEditor onParseXml={handleParseXml} onExport={handleExport} />
-              </div>
+              {!import.meta.env.AS_PLUGIN && (
+                <div className="bg-white dark:bg-[#222] border border-gray-200/60 shadow-lg rounded-lg min-h-[420px] flex flex-col">
+                  <XMLEditor onParseXml={handleParseXml} onExport={handleExport} />
+                </div>
+              )}
 
               <div
                 className={`col-span-1 bg-white dark:bg-[#222] border border-gray-200/60 shadow-lg rounded-lg min-h-[420px] flex flex-col`}
