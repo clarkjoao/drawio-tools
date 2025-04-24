@@ -1,4 +1,4 @@
-import { cloneMxCell, cloneUserObject, cloneWrapper } from "./graph.utils";
+import { cloneMxCell, cloneWrapper } from "./graph.utils";
 import { MxBuilder } from "./MxBuilder";
 
 export const NodeManager = (builder: MxBuilder) => ({
