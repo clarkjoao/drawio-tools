@@ -100,7 +100,7 @@ const NodeBrowser = ({ data, onSelectNode }: NodeBrowserProps) => {
           <div className="text-xs font-bold text-gray-600 tracking-wide px-4 py-3 border-b border-gray-200 bg-white/70">
             NODE PROPERTIES
           </div>
-          <NodePropertiesPanel selectedNode={selectedNode} builder={data} />
+          <NodePropertiesPanel selectedNode={selectedNode} />
         </div>
       </div>
     </div>

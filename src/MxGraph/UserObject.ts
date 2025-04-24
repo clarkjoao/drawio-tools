@@ -52,6 +52,9 @@ export class UserObject {
     if (attributes.cell.id === this.id) {
       attributes.cell.id = ""; // remove id from cell if it is the same as the user object
     }
+    if (attributes.link) {
+      this.link = this.serializeLink(attributes.link);
+    }
     Object.assign(this, attributes);
   }
 
@@ -115,13 +118,24 @@ export class UserObject {
     const data = this.getParsedLink();
     if (!data.actions) data.actions = [];
     data.actions.push(action);
-    this.link = UserObject.serializeLink(data);
+    this.link = this.serializeLink(JSON.stringify(data));
   }
 
-  static serializeLink(data: { title?: string; actions: Action[] }): string {
-    const json = JSON.stringify(data);
-    const escaped = json.replace(/"/g, "&quot;");
-    return `data:action/json,${escaped}`;
+  serializeLink(link: string): string {
+    if (!link) return "";
+
+    const alreadyEscaped = /data:action\/json,.*&quot;.*&quot;/.test(link);
+    if (alreadyEscaped) return link;
+
+    const prefix = "data:action/json,";
+    if (link.startsWith(prefix)) {
+      const jsonPart = link.slice(prefix.length);
+      const escapedJson = jsonPart.replace(/"/g, "&quot;");
+      return `${prefix}${escapedJson}`;
+    }
+
+    const escapedJson = link.replace(/"/g, "&quot;");
+    return `${prefix}${escapedJson}`;
   }
 
   toXmlString(): string {
@@ -135,14 +149,13 @@ export class UserObject {
 
     const attrs = [
       this.label !== undefined && `label="${escapeXml(this.label)}"`,
-      this.link && `link="${this.link}"`,
+      this.link && `link="${this.serializeLink(this.link)}"`,
       this.tags.size > 0 && `tags="${escapeXml(this.getTagsAsString())}"`,
       `id="${escapeXml(this.id)}"`
     ]
       .filter(Boolean)
       .join(" ");
 
-    // Remove ID duplicado na célula se for o mesmo do UserObject
     if (this.cell?.id === this.id) {
       this.cell.id = undefined;
     }

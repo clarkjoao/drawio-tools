@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { MxBuilder } from "../MxGraph/MxBuilder";
 import XMLEditor from "@/components/XMLEditor";
 import NodeBrowser from "@/components/NodeBrowser";
@@ -8,24 +7,14 @@ import { ObjectNode } from "@/MxGraph/ObjectNode";
 import { MxGeometry } from "@/MxGraph/MxGeometry";
 import { generateDrawioId } from "@/utils/drawio";
 import { UserObject } from "@/MxGraph/UserObject";
+import { useBuilder } from "@/context/BuilderContext";
 
 export default function App() {
-  const [builder, setBuilder] = useState<MxBuilder | null>(null);
-
-  const refreshBuilder = () => {
-    console.log("Refreshing builder...", !!builder);
-    if (builder) {
-      const cloned = MxBuilder.fromXml(builder.toXmlString());
-
-      console.log("Cloned builder:", cloned);
-      setBuilder(cloned);
-    }
-  };
+  const { builder, setBuilder, refreshBuilder } = useBuilder();
 
   const handleParseXml = (xmlString: string) => {
     try {
       const newBuilder = MxBuilder.fromXml(xmlString);
-      console.log("Parsed XML:", newBuilder);
       setBuilder(newBuilder);
     } catch (e) {
       console.error("Erro ao fazer parse do XML", e);
@@ -100,7 +89,7 @@ export default function App() {
 
       const menuItemId = generateDrawioId("menu-item-layer");
 
-      const link = UserObject.serializeLink({
+      const link = JSON.stringify({
         title: `Show Only ${layerToShow}`,
         actions: [
           {
@@ -170,17 +159,6 @@ export default function App() {
     console.log("Custom menu with dynamic links added.");
     refreshBuilder();
   };
-
-  useEffect(() => {
-    setInterval(() => {
-      console.log("Refreshing builder...", !!builder);
-      if (!builder) return;
-      const cloned = MxBuilder.fromXml(builder.toXmlString());
-
-      console.log("Cloned builder:", cloned);
-      setBuilder(cloned);
-    }, 1000);
-  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">

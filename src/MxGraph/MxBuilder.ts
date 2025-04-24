@@ -42,7 +42,6 @@ export class MxBuilder {
       switch (child.tagName) {
         case "mxCell": {
           const cell = MxCell.fromElement(child);
-          debugger;
           if (cell.isLayer && cell.id == "0") {
             // add default layer to the model
             // builder.model.root.add(cell);
@@ -62,7 +61,6 @@ export class MxBuilder {
           } else {
             const wrapper = new UserObject({ id: cell.id, cell });
 
-            debugger;
             builder.model.root.add(wrapper);
           }
           break;

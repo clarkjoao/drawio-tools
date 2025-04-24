@@ -4,22 +4,24 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ObjectNode } from "@/MxGraph/ObjectNode";
 import { UserObject } from "@/MxGraph/UserObject";
-import { MxBuilder, NodeInfo } from "@/MxGraph/MxBuilder";
+import { NodeInfo } from "@/MxGraph/MxBuilder";
 import { NodeManager } from "@/MxGraph/NodeManager";
+import { useBuilder } from "@/context/BuilderContext";
 
 interface NodePropertiesPanelProps {
   selectedNode: NodeInfo | null;
-  builder: MxBuilder; // MxBuilder
   onUpdate?: (updated: NodeInfo) => void;
 }
 
-const NodePropertiesPanel = ({ selectedNode, builder, onUpdate }: NodePropertiesPanelProps) => {
+const NodePropertiesPanel = ({ selectedNode, onUpdate }: NodePropertiesPanelProps) => {
+  const { builder, refreshBuilder } = useBuilder();
   const [editedLabel, setEditedLabel] = useState("");
   const [editedLink, setEditedLink] = useState("");
   const [editedId, setEditedId] = useState("");
   const [editedParent, setEditedParent] = useState("");
 
-  const manager = NodeManager(builder);
+  const manager = builder ? NodeManager(builder) : null;
+  if (!manager) return null;
 
   useEffect(() => {
     if (selectedNode) {
@@ -39,17 +41,15 @@ const NodePropertiesPanel = ({ selectedNode, builder, onUpdate }: NodeProperties
   }, [selectedNode]);
 
   const handleSave = () => {
-    if (!selectedNode) return;
+    if (!selectedNode || !builder) return;
 
     const currentId = selectedNode.cell.id;
     if (!currentId) return;
-
     if (editedId && editedId !== currentId) {
       manager.updateNodeId(currentId, editedId);
     }
 
     if (editedParent && editedParent !== selectedNode.cell.parent) {
-      debugger;
       manager.moveNodeToLayer(editedId || currentId, editedParent);
     }
 
@@ -63,10 +63,12 @@ const NodePropertiesPanel = ({ selectedNode, builder, onUpdate }: NodeProperties
 
     const updated = builder.getNode(editedId || currentId);
     if (updated && onUpdate) onUpdate(updated);
+
+    refreshBuilder();
   };
 
   const renderDetails = () => {
-    if (!selectedNode) return null;
+    if (!selectedNode || !builder) return null;
 
     const { cell, wrapper } = selectedNode;
 
