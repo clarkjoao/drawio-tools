@@ -1,58 +1,71 @@
-import { Root } from "./Root";
-import { MxEventEmitter } from "./MxEvents";
+import { MxCell } from "./MxCell";
 
-export class MxGraphModel extends MxEventEmitter {
-  dx?: number;
-  dy?: number;
-  grid?: number;
-  gridSize?: number;
-  guides?: number;
-  tooltips?: number;
-  connect?: number;
-  arrows?: number;
-  fold?: number;
-  page?: number;
-  pageScale?: number;
-  pageWidth?: number;
-  pageHeight?: number;
-  math?: number;
-  shadow?: number;
+export class MxGraphModel {
+  root: MxCell[];
+  attributes: Record<string, string>;
 
-  root: Root;
-
-  constructor(attributes: Partial<MxGraphModel> = {}) {
-    super();
-    Object.assign(this, attributes);
-    this.root = new Root();
+  constructor(root: MxCell[] = [], attributes: Record<string, string> = {}) {
+    this.root = root;
+    this.attributes = attributes;
   }
 
-  addToRoot(element: any) {
-    this.root.add(element);
-    this.emit("cellAdded", { element });
-    this.emit("modelChanged");
+  static fromXml(xml: string): MxGraphModel {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xml, "text/xml");
+    const modelNode = doc.querySelector("mxGraphModel");
+    const rootNode = modelNode?.querySelector("root");
+    const cells: MxCell[] = [];
+    const attrs: Record<string, string> = {};
+
+    if (modelNode) {
+      for (const attr of Array.from(modelNode.attributes)) {
+        attrs[attr.name] = attr.value;
+      }
+    }
+
+    if (rootNode) {
+      rootNode.childNodes.forEach((node: any) => {
+        // Check if the node is an element node
+        // and not a text node or comment
+        if (node.nodeType === 1) {
+          cells.push(MxCell.fromElement(node as Element));
+        }
+      });
+    }
+
+    return new MxGraphModel(cells, attrs);
   }
 
-  toXmlString(): string {
-    const attrs = [
-      this.dx !== undefined && `dx="${this.dx}"`,
-      this.dy !== undefined && `dy="${this.dy}"`,
-      this.grid !== undefined && `grid="${this.grid}"`,
-      this.gridSize !== undefined && `gridSize="${this.gridSize}"`,
-      this.guides !== undefined && `guides="${this.guides}"`,
-      this.tooltips !== undefined && `tooltips="${this.tooltips}"`,
-      this.connect !== undefined && `connect="${this.connect}"`,
-      this.arrows !== undefined && `arrows="${this.arrows}"`,
-      this.fold !== undefined && `fold="${this.fold}"`,
-      this.page !== undefined && `page="${this.page}"`,
-      this.pageScale !== undefined && `pageScale="${this.pageScale}"`,
-      this.pageWidth !== undefined && `pageWidth="${this.pageWidth}"`,
-      this.pageHeight !== undefined && `pageHeight="${this.pageHeight}"`,
-      this.math !== undefined && `math="${this.math}"`,
-      this.shadow !== undefined && `shadow="${this.shadow}"`
-    ]
-      .filter(Boolean)
-      .join(" ");
+  toXml(): string {
+    const doc = document.implementation.createDocument("", "", null);
+    const modelElement = doc.createElement("mxGraphModel");
 
-    return `<mxGraphModel ${attrs}>${this.root.toXmlString()}</mxGraphModel>`;
+    Object.entries(this.attributes).forEach(([key, value]) => {
+      modelElement.setAttribute(key, value);
+    });
+
+    const rootElement = doc.createElement("root");
+    this.root.forEach((cell) => {
+      rootElement.appendChild(cell.toElement(doc));
+    });
+
+    modelElement.appendChild(rootElement);
+    doc.appendChild(modelElement);
+
+    return new XMLSerializer().serializeToString(doc);
+  }
+
+  addCell(cell: MxCell) {
+    this.root.push(cell);
+  }
+
+  findCellById(id: string): MxCell | undefined {
+    return this.root.find((cell) => cell.id === id);
+  }
+
+  generateNewId(): string {
+    const randomPart = Math.random().toString(36).substring(2, 12);
+    const numberPart = Math.floor(Math.random() * 1000);
+    return `${randomPart}-${numberPart}`;
   }
 }

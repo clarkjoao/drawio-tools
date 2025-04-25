@@ -7,13 +7,15 @@ export class MxPoint {
     this.y = y;
   }
 
-  static fromElement(el: Element): MxPoint {
-    const x = parseFloat(el.getAttribute("x") || "0");
-    const y = parseFloat(el.getAttribute("y") || "0");
-    return new MxPoint(x, y);
+  static fromObject(obj: { x: number; y: number }): MxPoint {
+    return new MxPoint(obj.x, obj.y);
   }
 
-  toXmlString(tagName = "mxPoint"): string {
-    return `<${tagName} x="${this.x}" y="${this.y}" />`;
+  clone(): MxPoint {
+    return new MxPoint(this.x, this.y);
+  }
+
+  toString(): string {
+    return `(${this.x}, ${this.y})`;
   }
 }

@@ -1,57 +1,83 @@
-export type StyleValue = string | number | boolean;
+import { MxAlign, MxOverflow, MxShape, MxVerticalAlign, MxWhiteSpace } from "./mx.types";
 
 export class MxStyle {
-  private styles: Map<string, StyleValue> = new Map();
+  shape?: MxShape;
+  perimeter?: string;
+  html?: "0" | "1";
+  whiteSpace?: MxWhiteSpace;
+  overflow?: MxOverflow;
+  rounded?: "0" | "1";
+  fillColor?: string;
+  strokeColor?: string;
+  fontSize?: string;
+  fontColor?: string;
+  align?: MxAlign;
+  verticalAlign?: MxVerticalAlign;
 
-  constructor(styleString: string = "") {
-    this.parse(styleString);
-  }
+  custom: Record<string, string> = {};
 
-  parse(styleString: string): void {
-    styleString.split(";").forEach((pair) => {
-      const [key, value] = pair.split("=");
-      if (key && value !== undefined) {
-        this.styles.set(key.trim(), this.parseValue(value));
+  private static readonly knownAttributes = [
+    "shape",
+    "perimeter",
+    "html",
+    "whiteSpace",
+    "overflow",
+    "rounded",
+    "fillColor",
+    "strokeColor",
+    "fontSize",
+    "fontColor",
+    "align",
+    "verticalAlign"
+  ] as const;
+
+  constructor(
+    props: Partial<Record<(typeof MxStyle.knownAttributes)[number] | string, string>> = {}
+  ) {
+    for (const [key, value] of Object.entries(props)) {
+      if ((MxStyle.knownAttributes as readonly string[]).includes(key)) {
+        (this as any)[key] = value;
+      } else if (value !== undefined) {
+        this.custom[key] = value;
       }
-    });
+    }
   }
 
-  private parseValue(value: string): StyleValue {
-    if (value === "true") return true;
-    if (value === "false") return false;
-    if (!isNaN(Number(value))) return Number(value);
-    return value;
+  static parse(styleStr: string): MxStyle {
+    const style = new MxStyle();
+    if (!styleStr) return style;
+
+    const pairs = styleStr.split(";").filter(Boolean);
+
+    for (const pair of pairs) {
+      const [rawKey, rawValue] = pair.split("=");
+      const key = rawKey.trim();
+      const value = (rawValue ?? "").trim();
+
+      if ((MxStyle.knownAttributes as readonly string[]).includes(key)) {
+        (style as any)[key] = value;
+      } else {
+        style.custom[key] = value;
+      }
+    }
+
+    return style;
   }
 
-  get(key: string): StyleValue | undefined {
-    return this.styles.get(key);
-  }
+  static stringify(style: MxStyle): string {
+    const entries: string[] = [];
 
-  set(key: string, value: StyleValue): void {
-    this.styles.set(key, value);
-  }
+    for (const key of MxStyle.knownAttributes) {
+      const value = style[key];
+      if (value !== undefined) {
+        entries.push(`${key}=${value}`);
+      }
+    }
 
-  remove(key: string): boolean {
-    return this.styles.delete(key);
-  }
+    for (const [key, value] of Object.entries(style.custom)) {
+      entries.push(value === "" ? key : `${key}=${value}`);
+    }
 
-  toString(): string {
-    return Array.from(this.styles.entries())
-      .map(([key, value]) => `${key}=${value}`)
-      .join(";");
-  }
-
-  merge(style: MxStyle): void {
-    style.styles.forEach((value, key) => {
-      this.styles.set(key, value);
-    });
-  }
-
-  clone(): MxStyle {
-    const newStyle = new MxStyle();
-    this.styles.forEach((value, key) => {
-      newStyle.styles.set(key, value);
-    });
-    return newStyle;
+    return entries.join(";");
   }
 }

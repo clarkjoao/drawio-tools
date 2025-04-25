@@ -5,9 +5,8 @@ import { Button } from "./ui/button";
 export interface IXMLEditor {
   onParseXml: (xmlString: string) => void;
   onExport: () => string;
-  data?: string;
 }
-export default function XMLEditor({ onParseXml, onExport, data }: IXMLEditor) {
+export default function XMLEditor({ onParseXml, onExport }: IXMLEditor) {
   const monacoEditorRef = useRef<any>(null);
   const [xmlInput, setXmlInput] = useState<string>("");
 
@@ -34,16 +33,6 @@ export default function XMLEditor({ onParseXml, onExport, data }: IXMLEditor) {
     }
   };
 
-  useEffect(() => {
-    if (data) {
-      setXmlInput(data);
-      if (monacoEditorRef.current) {
-        setTimeout(() => {
-          monacoEditorRef.current.getAction("editor.action.formatDocument").run();
-        }, 50);
-      }
-    }
-  }, [data]);
   return (
     <>
       <div className="border-b border-gray-100 py-3 px-4 bg-gray-50/80 rounded-t-lg">

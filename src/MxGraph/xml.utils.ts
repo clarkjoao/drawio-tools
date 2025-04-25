@@ -1,37 +1,34 @@
-export function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;")
-    .replace(/\n/g, "&#xa;"); // escape de quebra de linha
-}
+export class XmlUtils {
+  static escapeString(value: string): string {
+    if (value == null) return "";
 
-export function escapeJsonForXmlAttribute(json: string): string {
-  return json
-    .replace(/&/g, "&amp;") // necessário para & em valores
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/\n/g, "&#xa;"); // escape de quebra de linha em JSON também
-}
+    if (/&(?:amp|lt|gt|quot|apos|#\w+);/.test(value)) {
+      return value;
+    }
 
-export function unescapeXml(str: string): string {
-  return str
-    .replace(/&apos;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/&gt;/g, ">")
-    .replace(/&lt;/g, "<")
-    .replace(/&amp;/g, "&")
-    .replace(/&#10;/g, "\n"); // desserializa quebra de linha
-}
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;")
+      .replace(/\n/g, "&#xa;");
+  }
 
-export function isProbablyEscaped(str: string): boolean {
-  return /&lt;|&gt;|&amp;|&quot;|&apos;/.test(str);
-}
+  static unescapeString(value: string): string {
+    if (value == null) return "";
 
-export function safeEscapeXml(str?: string): string | undefined {
-  if (str === undefined) return undefined;
-  return isProbablyEscaped(str) ? str : escapeXml(str);
+    return value
+      .replace(/&#xa;/g, "\n")
+      .replace(/&apos;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&gt;/g, ">")
+      .replace(/&lt;/g, "<")
+      .replace(/&amp;/g, "&");
+  }
+
+  static needsEscaping(value: string): boolean {
+    if (value == null || value === "") return false;
+    return /[<>&"'\n]/.test(value) && !/&(?:amp|lt|gt|quot|apos|#\w+);/.test(value);
+  }
 }

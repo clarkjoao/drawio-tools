@@ -1,84 +1,132 @@
 import { MxGeometry } from "./MxGeometry";
-import { MxStyle, StyleValue } from "./MxStyle";
-
-export type MxCellChild = { toXmlString: () => string } | string;
+import { ObjectNode } from "./ObjectNode";
+import { UserObject } from "./UserObject";
+import { XmlUtils } from "./xml.utils";
+import { MxStyle } from "./MxStyle";
 
 export class MxCell {
   id?: string;
   value?: string;
   style?: MxStyle;
+  vertex?: "0" | "1";
+  edge?: "0" | "1";
   parent?: string;
-  vertex?: number;
-  edge?: number;
   source?: string;
   target?: string;
-  connectable?: number;
-  isLayer: boolean = false;
+  connectable?: "0" | "1";
+  collapsed?: "0" | "1";
   geometry?: MxGeometry;
-  children: MxCellChild[] = [];
+  wrapper?: UserObject | ObjectNode;
 
-  constructor(attributes: Partial<MxCell>) {
-    Object.assign(this, attributes);
-    if (typeof this.style === "string") {
-      this.style = new MxStyle(this.style);
+  constructor(props: Partial<MxCell> = {}) {
+    if (props.style && !(props.style instanceof MxStyle)) {
+      throw new Error("Property 'style' must be an instance of MxStyle");
+    }
+
+    Object.assign(this, props);
+
+    if (this.vertex === "1" && this.edge === "1") {
+      throw new Error(`Cell cannot be both a vertex and an edge (id: ${this.id})`);
     }
   }
 
   static fromElement(el: Element): MxCell {
-    const attrs: Record<string, any> = {};
-    for (const attr of el.attributes) {
-      attrs[attr.name] = attr.value;
+    if (el.nodeName === "UserObject" || el.nodeName === "object") {
+      const isUserObject = el.nodeName === "UserObject";
+
+      const wrapper = isUserObject ? UserObject.fromElement(el) : ObjectNode.fromElement(el);
+
+      const innerCellEl = Array.from(el.children).find((c) => c.nodeName === "mxCell") as
+        | Element
+        | undefined;
+      if (!innerCellEl) {
+        throw new Error(`<${el.nodeName}> is missing an inner <mxCell>`);
+      }
+
+      const cell = MxCell.fromElement(innerCellEl);
+      cell.wrapper = wrapper;
+
+      // Because the wrapper is a parent of the cell, we need to set the cell's parent to undefined
+      cell.id = undefined;
+
+      return cell;
     }
 
-    const cell = new MxCell(attrs);
+    const styleAttr = el.getAttribute("style") || "";
 
-    const geometryEl = el.getElementsByTagName("mxGeometry")[0];
-    if (geometryEl) {
-      cell.setGeometry(MxGeometry.fromElement(geometryEl));
+    const cell = new MxCell({
+      id: el.getAttribute("id") || undefined,
+      value: el.getAttribute("value") || undefined,
+      style: MxStyle.parse(styleAttr),
+      vertex: el.getAttribute("vertex") as "0" | "1" | undefined,
+      edge: el.getAttribute("edge") as "0" | "1" | undefined,
+      parent: el.getAttribute("parent") || undefined,
+      source: el.getAttribute("source") || undefined,
+      target: el.getAttribute("target") || undefined,
+      connectable: el.getAttribute("connectable") as "0" | "1" | undefined,
+      collapsed: el.getAttribute("collapsed") as "0" | "1" | undefined
+    });
+
+    for (const child of Array.from(el.children)) {
+      if (child.nodeName === "mxGeometry") {
+        cell.geometry = MxGeometry.fromElement(child);
+      }
     }
 
     return cell;
   }
 
-  setGeometry(geometry: MxGeometry) {
-    this.geometry = geometry;
+  get isLayer(): boolean {
+    return this.vertex !== "1" && this.edge !== "1" && !this.wrapper;
   }
 
-  setStyle(style: MxStyle | string): void {
-    this.style = typeof style === "string" ? new MxStyle(style) : style;
+  get isLayerRoot(): boolean {
+    return this.isLayer && this.parent === undefined;
   }
 
-  updateStyle(key: string, value: StyleValue): void {
-    if (!this.style) {
-      this.style = new MxStyle();
+  get isGroup(): boolean {
+    return (this.style?.shape === "group" || this.connectable === "0") && this.vertex === "1";
+  }
+
+  toElement(doc: Document): Element {
+    const cellEl = doc.createElement("mxCell");
+
+    if (this.id) {
+      cellEl.setAttribute("id", this.id);
     }
-    this.style.set(key, value);
-  }
 
-  addChild(child: MxCellChild) {
-    this.children.push(child);
-  }
+    const safeValue = typeof this.value === "string" ? this.value : String(this.value ?? "");
+    cellEl.setAttribute("value", XmlUtils.escapeString(safeValue));
 
-  toXmlString(): string {
-    const attrs = [
-      this.id && `id="${this.id}"`,
-      this.value !== undefined && `value="${this.value}"`,
-      this.style && `style="${this.style.toString()}"`,
-      this.parent && `parent="${this.parent}"`,
-      this.vertex !== undefined && `vertex="${this.vertex}"`,
-      this.edge !== undefined && `edge="${this.edge}"`,
-      this.source && `source="${this.source}"`,
-      this.target !== undefined && `target="${this.target}"`,
-      this.connectable !== undefined && `connectable="${this.connectable}"`
-    ]
-      .filter(Boolean)
-      .join(" ");
+    if (this.style) {
+      const styleStr = MxStyle.stringify(this.style);
+      if (styleStr.length > 0) {
+        cellEl.setAttribute("style", styleStr);
+      }
+    }
 
-    const geometryXml = this.geometry?.toXmlString() || "";
-    const childrenXml = this.children
-      .map((child) => (typeof child === "string" ? child : child.toXmlString()))
-      .join("");
+    if (this.vertex) cellEl.setAttribute("vertex", this.vertex);
+    if (this.edge) cellEl.setAttribute("edge", this.edge);
+    if (this.connectable) cellEl.setAttribute("connectable", this.connectable);
+    if (this.collapsed) cellEl.setAttribute("collapsed", this.collapsed);
+    if (this.parent) cellEl.setAttribute("parent", this.parent);
+    if (this.source) cellEl.setAttribute("source", this.source);
+    if (this.target) cellEl.setAttribute("target", this.target);
 
-    return `<mxCell ${attrs}>${geometryXml}${childrenXml}</mxCell>`;
+    if (this.geometry) {
+      cellEl.appendChild(this.geometry.toElement(doc));
+    }
+
+    if (this.wrapper) {
+      const wrapperEl =
+        this.wrapper instanceof UserObject
+          ? this.wrapper.toUserObjectElement(doc)
+          : this.wrapper.toObjectElement(doc);
+
+      wrapperEl.appendChild(cellEl);
+      return wrapperEl;
+    }
+
+    return cellEl;
   }
 }

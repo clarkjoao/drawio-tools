@@ -1,31 +1,49 @@
-import { MxCell } from "./MxCell";
+import { XmlUtils } from "./xml.utils";
 
 export class ObjectNode {
-  id: string;
-  cell: MxCell;
+  label?: string;
+  link?: string;
+  tags?: string;
+  tooltip?: string;
+  placeholder?: string;
+  customAttributes: Record<string, string>;
 
-  constructor(attrs: { id: string }, cell: MxCell) {
-    this.id = attrs.id;
-    this.cell = cell;
+  constructor(props: Partial<ObjectNode> = {}) {
+    this.label = props.label;
+    this.link = props.link;
+    this.tags = props.tags;
+    this.tooltip = props.tooltip;
+    this.placeholder = props.placeholder;
+    this.customAttributes = props.customAttributes || {};
   }
 
   static fromElement(el: Element): ObjectNode {
-    const id = el.getAttribute("id") || "";
-    const cellEl = el.getElementsByTagName("mxCell")[0];
-    const cell = MxCell.fromElement(cellEl);
-    return new ObjectNode({ id }, cell);
+    const obj = new ObjectNode();
+    const knownAttributes = ["label", "link", "tags", "tooltip", "placeholder"];
+
+    Array.from(el.attributes).forEach(({ name, value }) => {
+      if (knownAttributes.includes(name)) {
+        (obj as any)[name] = XmlUtils.unescapeString(value);
+      } else {
+        obj.customAttributes[name] = value;
+      }
+    });
+
+    return obj;
   }
 
-  setCell(cell: MxCell) {
-    this.cell = cell;
-  }
+  toObjectElement(doc: Document): Element {
+    const el = doc.createElement("object");
 
-  toXmlString(): string {
-    if (this.id === this.cell.id && this.cell.parent === "0") {
-      this.cell.id = undefined;
-      this.cell.isLayer = true;
-    }
+    if (this.label) el.setAttribute("label", XmlUtils.escapeString(this.label));
+    if (this.link) el.setAttribute("link", XmlUtils.escapeString(this.link));
+    if (this.tags) el.setAttribute("tags", XmlUtils.escapeString(this.tags));
+    if (this.tooltip) el.setAttribute("tooltip", XmlUtils.escapeString(this.tooltip));
+    if (this.placeholder) el.setAttribute("placeholder", XmlUtils.escapeString(this.placeholder));
 
-    return `<object id="${this.id}">${this.cell.toXmlString()}</object>`;
+    Object.entries(this.customAttributes).forEach(([k, v]) => {
+      el.setAttribute(k, XmlUtils.escapeString(v));
+    });
+    return el;
   }
 }

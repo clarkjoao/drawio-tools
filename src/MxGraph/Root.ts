@@ -1,14 +1,26 @@
-export class Root {
-  children: any[] = [];
+import { MxCell } from "./MxCell";
 
-  add(element: any) {
-    this.children.push(element);
+export class Root {
+  cells: MxCell[] = [];
+
+  constructor(cells: MxCell[] = []) {
+    this.cells = cells;
   }
 
-  toXmlString(): string {
-    const childrenXml = this.children
-      .map((c) => (typeof c.toXmlString === "function" ? c.toXmlString() : ""))
-      .join("");
-    return `<root>${childrenXml}</root>`;
+  add(cell: MxCell) {
+    this.cells.push(cell);
+  }
+
+  remove(cell: MxCell) {
+    const index = this.cells.indexOf(cell);
+    if (index !== -1) {
+      this.cells.splice(index, 1);
+    }
+  }
+
+  toXml(doc: Document): Element {
+    const root = doc.createElement("root");
+    this.cells.forEach((cell) => root.appendChild(cell.toElement(doc)));
+    return root;
   }
 }

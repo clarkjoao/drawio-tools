@@ -1,5 +1,3 @@
-export interface XmlAttributes {
-  [key: string]: string | number | boolean | undefined;
+export interface XmlSerializable {
+  toXml(doc: Document): Element;
 }
-
-export type StyleValue = string | number | boolean;
