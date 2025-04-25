@@ -1,12 +1,13 @@
 import Editor from "@monaco-editor/react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Button } from "./ui/button";
 
 export interface IXMLEditor {
   onParseXml: (xmlString: string) => void;
   onExport: () => string;
+  data?: string;
 }
-export default function XMLEditor({ onParseXml, onExport }: IXMLEditor) {
+export default function XMLEditor({ onParseXml, onExport, data }: IXMLEditor) {
   const monacoEditorRef = useRef<any>(null);
   const [xmlInput, setXmlInput] = useState<string>("");
 
@@ -33,6 +34,16 @@ export default function XMLEditor({ onParseXml, onExport }: IXMLEditor) {
     }
   };
 
+  useEffect(() => {
+    if (data) {
+      setXmlInput(data);
+      if (monacoEditorRef.current) {
+        setTimeout(() => {
+          monacoEditorRef.current.getAction("editor.action.formatDocument").run();
+        }, 50);
+      }
+    }
+  }, [data]);
   return (
     <>
       <div className="border-b border-gray-100 py-3 px-4 bg-gray-50/80 rounded-t-lg">
@@ -46,25 +57,26 @@ export default function XMLEditor({ onParseXml, onExport }: IXMLEditor) {
           onChange={(value) => setXmlInput(value || "")}
           onMount={(editor) => {
             monacoEditorRef.current = editor;
+            setTimeout(() => {
+              editor?.getAction("editor.action.formatDocument")?.run();
+            }, 100);
           }}
           options={{
             minimap: { enabled: false },
             wordWrap: "on",
             fontSize: 14,
-            theme: "vs-light"
+            theme: "vs-light",
+            automaticLayout: true,
+            formatOnPaste: true,
+            formatOnType: true
           }}
         />
       </div>
       <div className="px-4 pb-4 pt-2 border-t border-gray-100 bg-gray-50/50 flex items-center gap-3">
-        <Button variant="outline" className="w-full" onClick={parseXml}>
+        <Button variant="outline" className="w-full" onClick={parseXml} disabled={!xmlInput.trim()}>
           Parse XML
         </Button>
-        <Button
-          variant="secondary"
-          className="w-full"
-          onClick={exportXml}
-          disabled={xmlInput.trim() === ""}
-        >
+        <Button variant="secondary" className="w-full" onClick={exportXml}>
           Export XML
         </Button>
       </div>

@@ -1,6 +1,7 @@
 import { Root } from "./Root";
+import { MxEventEmitter } from "./MxEvents";
 
-export class MxGraphModel {
+export class MxGraphModel extends MxEventEmitter {
   dx?: number;
   dy?: number;
   grid?: number;
@@ -20,8 +21,15 @@ export class MxGraphModel {
   root: Root;
 
   constructor(attributes: Partial<MxGraphModel> = {}) {
+    super();
     Object.assign(this, attributes);
     this.root = new Root();
+  }
+
+  addToRoot(element: any) {
+    this.root.add(element);
+    this.emit("cellAdded", { element });
+    this.emit("modelChanged");
   }
 
   toXmlString(): string {

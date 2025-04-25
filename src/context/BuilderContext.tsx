@@ -1,11 +1,18 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { MxBuilder } from "@/MxGraph/MxBuilder";
+import { LayerInfo } from "@/MxGraph/MxBuilder";
 
 interface BuilderContextProps {
   builder: MxBuilder | null;
   setBuilder: (builder: MxBuilder) => void;
   refreshBuilder: () => void;
   sendToDrawio: () => void;
+  createGroup: (id: string, childrenIds: string[], layer?: LayerInfo) => void;
+  updateCellStyle: (
+    cellId: string,
+    styleKey: string,
+    styleValue: string | number | boolean
+  ) => void;
 }
 
 const BuilderContext = createContext<BuilderContextProps | undefined>(undefined);
@@ -18,23 +25,46 @@ export const BuilderProvider = ({ children }: { children: React.ReactNode }) => 
   }, []);
 
   const refreshBuilder = useCallback(() => {
-    console.log("Refreshing builder", !!builder);
     if (builder) {
       const cloned = MxBuilder.fromXml(builder.toXmlString());
       setBuilderState(cloned);
-      const xmlString = cloned.toXmlString();
-      window.postMessage({ type: "react-xml-update", payload: xmlString }, "*");
-      console.log("📤 XML enviado para draw.io", xmlString);
+      sendXmlToDrawio(cloned.toXmlString());
     }
   }, [builder]);
 
   const sendToDrawio = useCallback(() => {
     if (builder) {
-      const xmlString = builder.toXmlString();
-      window.postMessage({ type: "react-xml-update", payload: xmlString }, "*");
-      console.log("📤 XML enviado para draw.io", xmlString);
+      sendXmlToDrawio(builder.toXmlString());
     }
   }, [builder]);
+
+  const createGroup = useCallback(
+    (id: string, childrenIds: string[], layer?: LayerInfo) => {
+      if (builder) {
+        builder.createGroup(id, childrenIds, layer);
+        refreshBuilder();
+      }
+    },
+    [builder, refreshBuilder]
+  );
+
+  const updateCellStyle = useCallback(
+    (cellId: string, styleKey: string, styleValue: string | number | boolean) => {
+      if (builder) {
+        const cell = builder.findCellById(cellId);
+        if (cell) {
+          cell.updateStyle(styleKey, styleValue);
+          refreshBuilder();
+        }
+      }
+    },
+    [builder, refreshBuilder]
+  );
+
+  const sendXmlToDrawio = (xmlString: string) => {
+    window.postMessage({ type: "react-xml-update", payload: xmlString }, "*");
+    console.log("📤 XML enviado para draw.io", xmlString);
+  };
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -42,11 +72,8 @@ export const BuilderProvider = ({ children }: { children: React.ReactNode }) => 
         try {
           const xmlString = event.data.payload;
           const newBuilder = MxBuilder.fromXml(xmlString);
-
-          // Força criação de nova instância
           const cloned = MxBuilder.fromXml(newBuilder.toXmlString());
           setBuilderState(cloned);
-
           console.log("📥 XML recebido e builder atualizado do draw.io");
         } catch (err) {
           console.error("❌ Erro ao processar XML do draw.io:", err);
@@ -59,7 +86,16 @@ export const BuilderProvider = ({ children }: { children: React.ReactNode }) => 
   }, []);
 
   return (
-    <BuilderContext.Provider value={{ builder, setBuilder, refreshBuilder, sendToDrawio }}>
+    <BuilderContext.Provider
+      value={{
+        builder,
+        setBuilder,
+        refreshBuilder,
+        sendToDrawio,
+        createGroup,
+        updateCellStyle
+      }}
+    >
       {children}
     </BuilderContext.Provider>
   );

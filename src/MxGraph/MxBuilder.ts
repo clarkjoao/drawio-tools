@@ -1,16 +1,16 @@
 import { MxGraphModel } from "./MxGraphModel";
 import { MxCell } from "./MxCell";
+import { MxGeometry } from "./MxGeometry";
 import { UserObject } from "./UserObject";
 import { ObjectNode } from "./ObjectNode";
 import { generateDrawioId } from "../utils/drawio";
+import { MxStyle } from "./MxStyle";
 
 export interface NodeInfo {
   id: string;
-  label: string;
   cell: MxCell;
   wrapper?: UserObject | ObjectNode;
 }
-
 export interface LayerInfo {
   id: string;
   label: string;
@@ -42,31 +42,22 @@ export class MxBuilder {
       switch (child.tagName) {
         case "mxCell": {
           const cell = MxCell.fromElement(child);
-          if (cell.isLayer && cell.id == "0") {
-            // add default layer to the model
-            builder.model.root.add(cell);
-            break;
-          }
-          // we are avoiding to add the default layer, that is the one with id 0
-          else if (cell.isLayer && cell.id !== "0") {
-            // Here we are defaulting to a layer id if the cell id is not set
-            const wrapped = new ObjectNode({
-              id: cell.id ?? generateDrawioId("layer"),
-              label: cell.value ?? undefined,
-              cell
-            });
+          const isLayer = cell.parent === "0";
+
+          if (isLayer) {
+            const cellId = cell.id || generateDrawioId("layer_");
+            const wrapped = new ObjectNode({ id: cellId }, cell);
             builder.model.root.add(wrapped);
 
             builder.layers.push({
-              id: wrapped.id,
-              label: wrapped.label || cell.value || wrapped.id,
+              id: cellId,
+              label: cell.value || cellId,
               node: wrapped
             });
           } else {
-            const wrapper = new UserObject({ id: cell.id, cell });
-
-            builder.model.root.add(wrapper);
+            builder.model.root.add(cell);
           }
+
           break;
         }
 
@@ -74,87 +65,121 @@ export class MxBuilder {
           const node = ObjectNode.fromElement(child);
           builder.model.root.add(node);
 
-          const isLayer = node.cell.isLayer;
+          const innerCell = node.cell;
+          const isLayer = innerCell?.parent === "0";
 
           if (isLayer) {
             builder.layers.push({
               id: node.id,
-              label: node.label || child.getAttribute("label") || node.id,
+              label: child.getAttribute("label") || node.id,
               node
             });
           }
+
           break;
         }
 
         case "UserObject":
           builder.model.root.add(UserObject.fromElement(child));
           break;
+
+        default:
+          console.warn("Elemento desconhecido em <root>:", child.tagName);
       }
     }
 
     return builder;
   }
 
-  listNodes(layerId?: string): NodeInfo[] {
-    const result: NodeInfo[] = [];
-
-    for (const child of this.model.root.children) {
-      if (
-        (child instanceof ObjectNode && (child.cell?.isLayer || child.cell?.parent === "0")) ||
-        (child instanceof MxCell && (child.isLayer || child.parent === "0"))
-      )
-        continue;
-
-      const parentId =
-        child instanceof ObjectNode || child instanceof UserObject
-          ? child.cell?.parent
-          : child instanceof MxCell
-            ? child.parent
-            : undefined;
-
-      if (layerId && parentId !== layerId) continue;
-
-      const label =
-        child instanceof ObjectNode || child instanceof UserObject ? child.label : child.value;
-      const cell = child instanceof MxCell ? child : child.cell;
-
-      result.push({
-        id: child.id,
-        label,
-        cell,
-        wrapper: child instanceof MxCell ? undefined : child
-      });
-    }
-
-    return result;
-  }
-
-  getNode(id: string) {
-    return this.listNodes().find((node) => node.id === id) || null;
-  }
-
-  ensureUserObject(nodeId: string): UserObject {
-    const child = this.model.root.children.find((c) => c.id === nodeId);
-    if (!child) throw new Error("Node not found: " + nodeId);
-
-    if (child instanceof UserObject) return child;
-
-    if (child instanceof MxCell) {
-      const userObj = new UserObject({ id: child.id, cell: child });
-      if (child.id) {
-        this.model.root.remove(child.id);
-      } else {
-        throw new Error("Child ID is undefined");
-      }
-      this.model.root.add(userObj);
-      return userObj;
-    }
-
-    throw new Error("Node cannot be wrapped");
-  }
-
   listLayers(): LayerInfo[] {
     return this.layers;
+  }
+
+  addTemplate(id: string, x: number, y: number, layer?: LayerInfo): this {
+    const parentId = layer?.id ?? "1";
+
+    const cell = new MxCell({
+      id,
+      value: "Novo Template",
+      style: new MxStyle("rounded=1;whiteSpace=wrap;html=1;"),
+      vertex: 1,
+      parent: parentId
+    });
+
+    cell.setGeometry(new MxGeometry({ x, y, width: 100, height: 40 }));
+    this.model.root.add(cell);
+    return this;
+  }
+
+  createTaggedTemplate(
+    id: string,
+    x: number,
+    y: number,
+    layer: LayerInfo | undefined,
+    tags: string[]
+  ): UserObject {
+    const parentId = layer?.id ?? "1";
+
+    const cell = new MxCell({
+      id,
+      value: "Novo Template",
+      style: new MxStyle("rounded=1;whiteSpace=wrap;html=1;"),
+      vertex: 1,
+      parent: parentId
+    });
+
+    cell.setGeometry(new MxGeometry({ x, y, width: 100, height: 40 }));
+
+    return new UserObject(
+      {
+        id,
+        label: "",
+        tags: tags.join(" ")
+      },
+      cell
+    );
+  }
+
+  createGroup(id: string, childrenIds: string[], layer?: LayerInfo): this {
+    const parentId = layer?.id ?? "1";
+
+    const groupCell = new MxCell({
+      id,
+      value: "Group",
+      style: new MxStyle("group"),
+      vertex: 1,
+      parent: parentId,
+      connectable: 0
+    });
+
+    const geometry = new MxGeometry({ x: 0, y: 0, width: 100, height: 100 });
+    groupCell.setGeometry(geometry);
+
+    this.model.root.add(groupCell);
+
+    childrenIds.forEach((childId) => {
+      const child = this.findCellById(childId);
+      if (child) {
+        child.parent = id;
+      }
+    });
+
+    return this;
+  }
+
+  findCellById(id: string): MxCell | undefined {
+    for (const child of this.model.root.children) {
+      if (child instanceof MxCell && child.id === id) {
+        return child;
+      }
+      if (child instanceof UserObject && child.cell?.id === id) {
+        return child.cell;
+      }
+      if (child instanceof ObjectNode && child.cell.id === id) {
+        return child.cell;
+      }
+    }
+    return undefined;
   }
 
   listTags(): string[] {
@@ -165,6 +190,60 @@ export class MxBuilder {
       }
     }
     return [...tags];
+  }
+
+  addTagToUserObject(id: string, tag: string): boolean {
+    const userObj = this.model.root.children.find(
+      (c): c is UserObject => c instanceof UserObject && c.id === id
+    );
+    if (!userObj) return false;
+    userObj.addTag(tag);
+    return true;
+  }
+
+  removeTagFromUserObject(id: string, tag: string): boolean {
+    const userObj = this.model.root.children.find(
+      (c): c is UserObject => c instanceof UserObject && c.id === id
+    );
+    if (!userObj) return false;
+    userObj.removeTag(tag);
+    return true;
+  }
+
+  wrapAsUserObject(id: string, cell: MxCell, options?: { tags?: string[] }): UserObject {
+    return new UserObject(
+      {
+        id,
+        label: "",
+        tags: options?.tags?.join(" ")
+      },
+      cell
+    );
+  }
+
+  removeNodeById(id: string): void {
+    const children = this.model.root?.children;
+    if (!children || !Array.isArray(children)) return;
+
+    const index = children.findIndex((child: any) => child.id === id);
+    if (index >= 0) {
+      children.splice(index, 1);
+    }
+  }
+
+  getNode(id: string): NodeInfo | null {
+    for (const child of this.model.root.children) {
+      if (child instanceof MxCell && child.id === id) {
+        return { id, cell: child };
+      }
+      if (child instanceof UserObject && child.id === id) {
+        return child.cell ? { id, cell: child.cell, wrapper: child } : null;
+      }
+      if (child instanceof ObjectNode && child.id === id) {
+        return { id, cell: child.cell, wrapper: child };
+      }
+    }
+    return null;
   }
 
   toXmlString(): string {

@@ -1,39 +1,33 @@
 import { MxGeometry } from "./MxGeometry";
-import { escapeXml, unescapeXml } from "./xml.utils";
+import { MxStyle, StyleValue } from "./MxStyle";
 
 export type MxCellChild = { toXmlString: () => string } | string;
 
 export class MxCell {
   id?: string;
-  label?: string;
   value?: string;
-  style?: string;
+  style?: MxStyle;
   parent?: string;
-  vertex?: string;
+  vertex?: number;
   edge?: number;
   source?: string;
   target?: string;
   connectable?: number;
-
   isLayer: boolean = false;
-
   geometry?: MxGeometry;
   children: MxCellChild[] = [];
 
   constructor(attributes: Partial<MxCell>) {
-    // if id is 0, is default layer
-    // if parent is 0, is default layer
-    if (attributes.id === "0" || attributes.parent === "0") {
-      attributes.isLayer = true;
-    }
-
     Object.assign(this, attributes);
+    if (typeof this.style === "string") {
+      this.style = new MxStyle(this.style);
+    }
   }
 
   static fromElement(el: Element): MxCell {
     const attrs: Record<string, any> = {};
-    for (const attr of el?.attributes) {
-      attrs[attr.name] = unescapeXml(attr.value);
+    for (const attr of el.attributes) {
+      attrs[attr.name] = attr.value;
     }
 
     const cell = new MxCell(attrs);
@@ -41,37 +35,40 @@ export class MxCell {
     const geometryEl = el.getElementsByTagName("mxGeometry")[0];
     if (geometryEl) {
       cell.setGeometry(MxGeometry.fromElement(geometryEl));
-      cell.isLayer = false; // Set isLayer to false if geometry is present
     }
 
     return cell;
   }
 
   setGeometry(geometry: MxGeometry) {
-    if (this.isLayer) {
-      throw new Error("Cannot set geometry for a layer cell");
-    }
     this.geometry = geometry;
   }
 
-  addChild(child: MxCellChild) {
-    if (this.isLayer) {
-      throw new Error("Cannot add child to a layer cell");
+  setStyle(style: MxStyle | string): void {
+    this.style = typeof style === "string" ? new MxStyle(style) : style;
+  }
+
+  updateStyle(key: string, value: StyleValue): void {
+    if (!this.style) {
+      this.style = new MxStyle();
     }
+    this.style.set(key, value);
+  }
+
+  addChild(child: MxCellChild) {
     this.children.push(child);
   }
 
   toXmlString(): string {
     const attrs = [
-      this.id && `id="${escapeXml(this.id)}"`,
-      this.value !== undefined && `value="${escapeXml(this.value)}"`,
-      this.label !== undefined && `label="${escapeXml(this.label)}"`,
-      this.style && `style="${escapeXml(this.style)}"`,
-      this.parent && `parent="${escapeXml(this.parent)}"`,
-      this.vertex !== undefined && `vertex="${escapeXml(this.vertex)}"`,
+      this.id && `id="${this.id}"`,
+      this.value !== undefined && `value="${this.value}"`,
+      this.style && `style="${this.style.toString()}"`,
+      this.parent && `parent="${this.parent}"`,
+      this.vertex !== undefined && `vertex="${this.vertex}"`,
       this.edge !== undefined && `edge="${this.edge}"`,
-      this.source && `source="${escapeXml(this.source)}"`,
-      this.target !== undefined && `target="${escapeXml(this.target)}"`,
+      this.source && `source="${this.source}"`,
+      this.target !== undefined && `target="${this.target}"`,
       this.connectable !== undefined && `connectable="${this.connectable}"`
     ]
       .filter(Boolean)
