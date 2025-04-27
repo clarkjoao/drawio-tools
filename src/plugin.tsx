@@ -18,18 +18,11 @@ import { MxEvents } from "@/MxGraph/MxEvents";
   }
 
   function sendSelectionToReact() {
-    const addedCells = graph.getSelectionModel().added || [];
-    const removedCells = graph.getSelectionModel().removed || [];
     const selectedCells = graph.getSelectionCells() || [];
+    const selectedIds = selectedCells.map((cell: any) => cell.id);
 
-    const payload = {
-      selected: selectedCells.map((cell: any) => cell.id),
-      added: addedCells.map((cell: any) => cell.id),
-      removed: removedCells.map((cell: any) => cell.id)
-    };
-
-    console.log("Selection changed, sending IDs to React:", payload);
-    window.postMessage({ type: MxEvents.DRAWIO_SELECTION_CHANGED, payload }, "*");
+    console.log("Selection changed, sending selected IDs to React:", selectedIds);
+    window.postMessage({ type: MxEvents.DRAWIO_SELECTION_CHANGED, payload: selectedIds }, "*");
   }
 
   function handleIncomingMessage(event: MessageEvent) {
@@ -93,7 +86,6 @@ import { MxEvents } from "@/MxGraph/MxEvents";
     if (rootFloat) {
       console.log("FloatingMenu already exists.");
       rootFloat.remove();
-      // return;
     }
 
     let top = parseInt(localStorage.getItem("react-floating-menu-top") || "100", 10);
@@ -172,7 +164,6 @@ import { MxEvents } from "@/MxGraph/MxEvents";
     toggleButton.addEventListener("click", () => {
       isCollapsed = !isCollapsed;
       rootContainer.style.display = isCollapsed ? "none" : "flex";
-
       toggleButton.src = isCollapsed
         ? "data:image/svg+xml;base64,PCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIiAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj48c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHdpZHRoPSIxNHB4IiBoZWlnaHQ9IjEwcHgiIHZlcnNpb249IjEuMSIgc3R5bGU9ImNvbG9yLXNjaGVtZTogbGlnaHQgZGFyazsiPjxwYXRoIGQ9Ik0gMyAzIEwgNyA3IEwgMTEgMyIgc3Ryb2tlPSIjNzA3MDcwIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48L3N2Zz4="
         : "data:image/svg+xml;base64,PCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIiAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj48c3ZnIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHdpZHRoPSIxNHB4IiBoZWlnaHQ9IjEwcHgiIHZlcnNpb249IjEuMSIgc3R5bGU9ImNvbG9yLXNjaGVtZTogbGlnaHQgZGFyazsiPjxwYXRoIGQ9Ik0gMyA3IEwgNyAzIEwgMTEgNyIgc3Ryb2tlPSIjNzA3MDcwIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48L3N2Zz4=";
@@ -225,7 +216,7 @@ import { MxEvents } from "@/MxGraph/MxEvents";
     tryMountReact();
 
     model.addListener(mxEvent.CHANGE, sendXmlToReact);
-    // graph.getSelectionModel().addListener(mxEvent.CHANGE, sendSelectionToReact);
+    graph.getSelectionModel().addListener(mxEvent.CHANGE, sendSelectionToReact);
     window.addEventListener("message", handleIncomingMessage);
   }
 

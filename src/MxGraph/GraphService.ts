@@ -12,6 +12,11 @@ export class GraphService {
     return new GraphService(builder);
   }
 
+  idExists(id: string): boolean {
+    const model = this.builder.getModel();
+    return model.root.some((cell) => cell.id === id);
+  }
+
   addLayer(name: string) {
     this.builder.addLayer(name);
   }
@@ -34,6 +39,26 @@ export class GraphService {
     if (node) {
       node.parent = newParentId;
     }
+  }
+
+  updateNodeValue(nodeId: string, newValue: string) {
+    const model = this.builder.getModel();
+    const node = model.findCellById(nodeId);
+    if (node) {
+      node.value = newValue;
+    }
+  }
+
+  updateNodeId(nodeId: string, newId: string) {
+    const model = this.builder.getModel();
+    const node = model.findCellById(nodeId);
+    if (node) {
+      node.id = newId;
+    }
+  }
+
+  updateNodeStyle(nodeId: string, newStyle: Record<string, string>) {
+    this.builder.updateNodeStyle(nodeId, newStyle);
   }
 
   validateGraph(): string[] {

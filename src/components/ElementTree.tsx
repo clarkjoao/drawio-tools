@@ -1,8 +1,7 @@
-import React from "react";
-import { ChevronRight, ChevronDown, Layers, Folder, File } from "lucide-react";
+import React, { useEffect } from "react";
+import { ChevronRight, ChevronDown, Layers, Folder, File, MoveDiagonal } from "lucide-react";
 import { useBuilder } from "@/context/BuilderContext";
 import { MxCell } from "@/MxGraph/MxCell";
-import { Button } from "@/components/ui/button";
 
 export const ElementTree: React.FC = () => {
   const { builder, selectedCellIds, selectCellsInDrawio } = useBuilder();
@@ -49,6 +48,26 @@ export const ElementTree: React.FC = () => {
     }
   };
 
+  const getTypeTag = (cell: MxCell) => {
+    if (cell.isLayer) return "Layer";
+    if (cell.isGroup) return "Group";
+    return "Node";
+  };
+
+  const getIcon = (cell: MxCell) => {
+    if (cell.isLayer) return <Layers className="h-4 w-4" />;
+    if (cell.isGroup) return <Folder className="h-4 w-4" />;
+    return <File className="h-4 w-4" />;
+  };
+
+  const getExtraLabels = (cell: MxCell) => {
+    const extras: string[] = [];
+    if (cell.vertex === "1") extras.push("(V)");
+    if (cell.edge === "1") extras.push("(E)");
+    if (cell.connectable === "0") extras.push("(NC)");
+    return extras;
+  };
+
   const renderElement = (cell: MxCell, depth = 0) => {
     if (!builder) return null;
 
@@ -86,15 +105,16 @@ export const ElementTree: React.FC = () => {
             <div className="w-6" />
           )}
           <span className="flex items-center gap-2 font-mono">
-            {cell.isLayer ? (
-              <Layers className="h-4 w-4" />
-            ) : cell.isGroup ? (
-              <Folder className="h-4 w-4" />
-            ) : (
-              <File className="h-4 w-4" />
-            )}
+            {getIcon(cell)}
             {typeof cell.value === "string" && cell.value.trim() !== "" ? cell.value : "Unnamed"}
-            {id && <span className="text-gray-500 ml-2">#{id}</span>}
+            <span className="text-xs text-white bg-gray-500 rounded px-1 ml-2">
+              {getTypeTag(cell)}
+            </span>
+            {getExtraLabels(cell).map((label, idx) => (
+              <span key={idx} className="text-xs text-gray-500 bg-gray-200 rounded px-1 ml-1">
+                {label}
+              </span>
+            ))}
           </span>
         </div>
 
@@ -102,6 +122,32 @@ export const ElementTree: React.FC = () => {
       </div>
     );
   };
+
+  useEffect(() => {
+    if (!builder) return;
+    if (selectedCellIds.length === 0) return;
+
+    const model = builder.getModel();
+    const newExpanded = new Set<string>();
+
+    selectedCellIds.forEach((selectedId) => {
+      let current = model.findCellById(selectedId);
+      while (current) {
+        if (current.parent) {
+          newExpanded.add(current.parent);
+          current = model.findCellById(current.parent);
+        } else {
+          break;
+        }
+      }
+    });
+
+    setExpandedNodes((prev) => {
+      const combined = new Set(prev);
+      newExpanded.forEach((id) => combined.add(id));
+      return combined;
+    });
+  }, [selectedCellIds, builder]);
 
   if (!builder) {
     return <div className="text-gray-500">No XML loaded.</div>;

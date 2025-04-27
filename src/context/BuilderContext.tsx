@@ -3,6 +3,7 @@ import { MxBuilder } from "@/MxGraph/MxBuilder";
 import { MxEvents } from "@/MxGraph/MxEvents";
 import { MxCell } from "@/MxGraph/MxCell";
 import { calculateHash } from "@/utils/xml";
+
 interface BuilderContextProps {
   builder: MxBuilder | null;
   selectedCells: MxCell[];
@@ -70,7 +71,6 @@ export const BuilderProvider = ({ children }: { children: React.ReactNode }) => 
           .filter((cell): cell is MxCell => !!cell);
 
         setSelectedCells(cells);
-        console.log("Selected cells updated in context:", cells);
       }
     },
     [builder]
@@ -102,8 +102,12 @@ export const BuilderProvider = ({ children }: { children: React.ReactNode }) => 
           break;
 
         case MxEvents.DRAWIO_SELECTION_CHANGED:
-          console.log("Selection IDs received:", event.data.payload);
-          updateSelectedCells(event.data.payload || []);
+          const selected = event.data.payload;
+          if (Array.isArray(selected)) {
+            updateSelectedCells(selected);
+          } else {
+            console.warn("Invalid selection payload", selected);
+          }
           break;
 
         default:

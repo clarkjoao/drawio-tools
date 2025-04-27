@@ -28,8 +28,8 @@ export default function App() {
           <h2 className="text-lg font-semibold text-gray-700">Nodes</h2>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
-          <div className="flex flex-col w-2/3 border-r border-gray-200">
+        <div className="flex flex-1 overflow-hidden max-h-[400px]">
+          <div className="flex flex-col w-1/2 border-r border-gray-200">
             <div className="p-2">
               <ScrollArea className="max-h-[400px] overflow-auto border rounded">
                 <ElementTree />
@@ -37,7 +37,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex flex-col w-1/3">
+          <div className="flex flex-col w-1/2">
             <div className="p-2">
               <ScrollArea className="h-full">
                 <PropertyPanel />
