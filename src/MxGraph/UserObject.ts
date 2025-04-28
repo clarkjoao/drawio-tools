@@ -52,8 +52,11 @@ export class UserObject {
   toUserObjectElement(doc: Document): Element {
     const userEl = doc.createElement("UserObject");
 
-    userEl.setAttribute("label", XmlUtils.escapeString(this.label || ""));
+    Object.entries(this.customAttributes).forEach(([k, v]) => {
+      userEl.setAttribute(k, XmlUtils.escapeString(v));
+    });
 
+    userEl.setAttribute("label", XmlUtils.escapeString(this.label ?? ""));
     if (this.link) userEl.setAttribute("link", XmlUtils.escapeString(this.link));
     if (this.tags) userEl.setAttribute("tags", XmlUtils.escapeString(this.tags));
     if (this.tooltip) userEl.setAttribute("tooltip", XmlUtils.escapeString(this.tooltip));
@@ -62,10 +65,6 @@ export class UserObject {
     if (this.type) userEl.setAttribute("type", XmlUtils.escapeString(this.type));
     if (this.description)
       userEl.setAttribute("description", XmlUtils.escapeString(this.description));
-
-    Object.entries(this.customAttributes).forEach(([k, v]) => {
-      userEl.setAttribute(k, XmlUtils.escapeString(v));
-    });
 
     if (this.id) userEl.setAttribute("id", this.id);
 

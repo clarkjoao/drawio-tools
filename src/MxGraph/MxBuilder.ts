@@ -3,6 +3,7 @@ import { MxCell } from "./MxCell";
 import { MxGeometry } from "./MxGeometry";
 import { UserObject } from "./UserObject";
 import { MxStyle } from "./MxStyle";
+import { XmlUtils } from "./xml.utils";
 
 export class MxBuilder {
   private model: MxGraphModel;
@@ -165,11 +166,11 @@ export class MxBuilder {
   updateNodeStyle(id: string, styleUpdates: Record<string, string>): this {
     const node = this.model.findCellById(id);
     if (!node) return this;
-    node.style = {
-      ...(node.style ?? {}),
+    node.style = new MxStyle({
+      ...(node.style?.toObject() ?? {}),
       custom: { ...(node.style?.custom ?? {}) },
       ...styleUpdates
-    };
+    });
     return this;
   }
 
@@ -190,6 +191,6 @@ export class MxBuilder {
   }
 
   toXml(): string {
-    return this.model.toXml();
+    return XmlUtils.autoFixEscapes(this.model.toXml());
   }
 }

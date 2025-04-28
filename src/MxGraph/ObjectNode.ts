@@ -1,6 +1,7 @@
 import { XmlUtils } from "./xml.utils";
 
 export class ObjectNode {
+  id?: string;
   label?: string;
   link?: string;
   tags?: string;
@@ -9,6 +10,7 @@ export class ObjectNode {
   customAttributes: Record<string, string>;
 
   constructor(props: Partial<ObjectNode> = {}) {
+    this.id = props.id;
     this.label = props.label;
     this.link = props.link;
     this.tags = props.tags;
@@ -19,7 +21,7 @@ export class ObjectNode {
 
   static fromElement(el: Element): ObjectNode {
     const obj = new ObjectNode();
-    const knownAttributes = ["label", "link", "tags", "tooltip", "placeholder"];
+    const knownAttributes = ["id", "label", "link", "tags", "tooltip", "placeholder"];
 
     Array.from(el.attributes).forEach(({ name, value }) => {
       if (knownAttributes.includes(name)) {
@@ -35,15 +37,18 @@ export class ObjectNode {
   toObjectElement(doc: Document): Element {
     const el = doc.createElement("object");
 
-    if (this.label) el.setAttribute("label", XmlUtils.escapeString(this.label));
+    Object.entries(this.customAttributes).forEach(([k, v]) => {
+      el.setAttribute(k, XmlUtils.escapeString(v));
+    });
+
+    el.setAttribute("label", XmlUtils.escapeString(this.label ?? ""));
     if (this.link) el.setAttribute("link", XmlUtils.escapeString(this.link));
     if (this.tags) el.setAttribute("tags", XmlUtils.escapeString(this.tags));
     if (this.tooltip) el.setAttribute("tooltip", XmlUtils.escapeString(this.tooltip));
     if (this.placeholder) el.setAttribute("placeholder", XmlUtils.escapeString(this.placeholder));
 
-    Object.entries(this.customAttributes).forEach(([k, v]) => {
-      el.setAttribute(k, XmlUtils.escapeString(v));
-    });
+    if (this.id) el.setAttribute("id", this.id);
+
     return el;
   }
 }

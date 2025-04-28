@@ -12,6 +12,10 @@ export class GraphService {
     return new GraphService(builder);
   }
 
+  getBuilder(): MxBuilder {
+    return this.builder;
+  }
+
   idExists(id: string): boolean {
     const model = this.builder.getModel();
     return model.root.some((cell) => cell.id === id);

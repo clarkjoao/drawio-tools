@@ -1,24 +1,30 @@
 export class XmlUtils {
-  static escapeString(value: string): string {
-    if (value == null) return "";
+  static escapeString(str: string): string {
+    if (!str) return "";
 
-    if (/&(?:amp|lt|gt|quot|apos|#\w+);/.test(value)) {
-      return value;
+    if (!XmlUtils.needsEscaping(str)) {
+      return str;
     }
 
-    return value
+    return str
       .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&apos;")
-      .replace(/\n/g, "&#xa;");
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
   static unescapeString(value: string): string {
-    if (value == null) return "";
+    if (!value) return "";
 
-    return value
+    const fixed = value
+      .replace(/&amp;lt;/g, "&lt;")
+      .replace(/&amp;gt;/g, "&gt;")
+      .replace(/&amp;quot;/g, "&quot;")
+      .replace(/&amp;apos;/g, "&apos;")
+      .replace(/&amp;amp;/g, "&amp;");
+
+    return fixed
       .replace(/&#xa;/g, "\n")
       .replace(/&apos;/g, "'")
       .replace(/&quot;/g, '"')
@@ -28,7 +34,22 @@ export class XmlUtils {
   }
 
   static needsEscaping(value: string): boolean {
-    if (value == null || value === "") return false;
-    return /[<>&"'\n]/.test(value) && !/&(?:amp|lt|gt|quot|apos|#\w+);/.test(value);
+    if (!value) return false;
+
+    const hasUnescapedSpecials = /[<>'"\n]/.test(value);
+    const hasAlreadyEscaped = /&(?:amp|lt|gt|quot|apos|#\w+);/.test(value);
+
+    return hasUnescapedSpecials && !hasAlreadyEscaped;
+  }
+
+  static autoFixEscapes(xml: string): string {
+    if (!xml) return "";
+
+    return xml
+      .replace(/&amp;lt;/g, "&lt;")
+      .replace(/&amp;gt;/g, "&gt;")
+      .replace(/&amp;quot;/g, "&quot;")
+      .replace(/&amp;apos;/g, "&apos;")
+      .replace(/&amp;amp;/g, "&amp;");
   }
 }

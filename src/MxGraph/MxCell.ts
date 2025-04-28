@@ -19,8 +19,8 @@ export class MxCell {
   wrapper?: UserObject | ObjectNode;
 
   constructor(props: Partial<MxCell> = {}) {
-    if (props.style && !(props.style instanceof MxStyle)) {
-      throw new Error("Property 'style' must be an instance of MxStyle");
+    if (props.style && !(props.style instanceof MxStyle) && typeof props.style === "object") {
+      props.style = new MxStyle(props.style);
     }
 
     Object.assign(this, props);
@@ -95,8 +95,19 @@ export class MxCell {
       cellEl.setAttribute("id", this.id);
     }
 
-    const safeValue = typeof this.value === "string" ? this.value : String(this.value ?? "");
-    cellEl.setAttribute("value", XmlUtils.escapeString(safeValue));
+    let finalValue = "";
+
+    //NOTE: Problem is here
+    if (this.wrapper instanceof UserObject && this.wrapper.label) {
+      finalValue = this.wrapper.label;
+    } else if (this.wrapper instanceof ObjectNode && this.wrapper.label) {
+      finalValue = this.wrapper.label;
+    } else if (!this.wrapper && typeof this.value === "string" && this.value.trim() !== "") {
+      finalValue = this.value;
+    }
+
+    const safeValue = XmlUtils.escapeString(finalValue);
+    cellEl.setAttribute("value", safeValue);
 
     if (this.style) {
       const styleStr = MxStyle.stringify(this.style);

@@ -31,14 +31,16 @@ export class MxStyle {
     "verticalAlign"
   ] as const;
 
-  constructor(
-    props: Partial<Record<(typeof MxStyle.knownAttributes)[number] | string, string>> = {}
-  ) {
+  constructor(props: Partial<Record<(typeof MxStyle.knownAttributes)[number] | string, any>> = {}) {
     for (const [key, value] of Object.entries(props)) {
-      if ((MxStyle.knownAttributes as readonly string[]).includes(key)) {
-        (this as any)[key] = value;
-      } else if (value !== undefined) {
-        this.custom[key] = value;
+      if (value !== undefined && value !== null && value !== "") {
+        const safeValue = String(value);
+
+        if ((MxStyle.knownAttributes as readonly string[]).includes(key)) {
+          (this as any)[key] = safeValue;
+        } else {
+          this.custom[key] = safeValue;
+        }
       }
     }
   }
@@ -53,6 +55,8 @@ export class MxStyle {
       const [rawKey, rawValue] = pair.split("=");
       const key = rawKey.trim();
       const value = (rawValue ?? "").trim();
+
+      if (!key) continue;
 
       if ((MxStyle.knownAttributes as readonly string[]).includes(key)) {
         (style as any)[key] = value;
@@ -69,15 +73,52 @@ export class MxStyle {
 
     for (const key of MxStyle.knownAttributes) {
       const value = style[key];
-      if (value !== undefined) {
-        entries.push(`${key}=${value}`);
+      if (value !== undefined && value !== null && value !== "") {
+        entries.push(`${key}=${String(value)}`);
       }
     }
 
     for (const [key, value] of Object.entries(style.custom)) {
-      entries.push(value === "" ? key : `${key}=${value}`);
+      if (key) {
+        entries.push(value === "" ? key : `${key}=${String(value)}`);
+      }
     }
 
     return entries.join(";");
+  }
+
+  toString(): string {
+    return MxStyle.stringify(this);
+  }
+
+  toObject(): Record<string, string> {
+    const obj: Record<string, string> = {};
+
+    for (const key of MxStyle.knownAttributes) {
+      const value = this[key];
+      if (value !== undefined && value !== null && value !== "") {
+        obj[key] = String(value);
+      }
+    }
+
+    for (const [key, value] of Object.entries(this.custom)) {
+      obj[key] = String(value);
+    }
+
+    return obj;
+  }
+
+  merge(other: Record<string, any>): void {
+    for (const [key, value] of Object.entries(other)) {
+      if (value !== undefined && value !== null && value !== "") {
+        const safeValue = String(value);
+
+        if ((MxStyle.knownAttributes as readonly string[]).includes(key)) {
+          (this as any)[key] = safeValue;
+        } else {
+          this.custom[key] = safeValue;
+        }
+      }
+    }
   }
 }

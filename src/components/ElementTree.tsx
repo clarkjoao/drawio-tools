@@ -68,6 +68,14 @@ export const ElementTree: React.FC = () => {
     return extras;
   };
 
+  const getCellDisplayName = (cell: MxCell) => {
+    if (typeof cell.value === "string" && cell.value.trim() !== "") return cell.value;
+    if (cell.style?.shape) return cell.style.shape;
+    if (cell.isGroup) return "Group";
+    if (cell.isLayer) return "Layer";
+    return "Unnamed";
+  };
+
   const renderElement = (cell: MxCell, depth = 0) => {
     if (!builder) return null;
 
@@ -106,7 +114,7 @@ export const ElementTree: React.FC = () => {
           )}
           <span className="flex items-center gap-2 font-mono">
             {getIcon(cell)}
-            {typeof cell.value === "string" && cell.value.trim() !== "" ? cell.value : "Unnamed"}
+            {getCellDisplayName(cell)}
             <span className="text-xs text-white bg-gray-500 rounded px-1 ml-2">
               {getTypeTag(cell)}
             </span>
