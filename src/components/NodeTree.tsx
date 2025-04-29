@@ -92,6 +92,14 @@ const NodeTree: React.FC = () => {
     return "Unnamed";
   };
 
+  const getExtraLabels = (cell: MxCell) => {
+    const extras: string[] = [];
+    if (cell.isVertex) extras.push("(V)");
+    if (cell.isEdge) extras.push("(E)");
+    if (cell.connectable === "0") extras.push("(NC)");
+    return extras;
+  };
+
   const renderNode = (node: MxCell, level: number = 0): React.ReactNode => {
     if (!node.id || !builder) return null;
     const id = node.id;
@@ -115,7 +123,7 @@ const NodeTree: React.FC = () => {
             isSelected
               ? "bg-blue-100 text-blue-800"
               : isHiddenOrLocked
-                ? "bg-blue-100 text-red-800"
+                ? "bg-gray-100 text-red-800"
                 : "hover:bg-gray-100"
           }`}
           draggable
@@ -143,6 +151,11 @@ const NodeTree: React.FC = () => {
               <span className="text-xs text-gray-600 bg-gray-200 rounded px-1">
                 {getTypeTag(node)}
               </span>
+              {getExtraLabels(node).map((label, idx) => (
+                <span key={idx} className="text-xs text-gray-500 bg-gray-200 rounded px-1 ml-1">
+                  {label}
+                </span>
+              ))}
             </div>
             <div className="text-sm font-medium text-gray-800">{label}</div>
           </div>

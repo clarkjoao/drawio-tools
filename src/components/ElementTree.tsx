@@ -62,8 +62,8 @@ export const ElementTree: React.FC = () => {
 
   const getExtraLabels = (cell: MxCell) => {
     const extras: string[] = [];
-    if (cell.vertex === "1") extras.push("(V)");
-    if (cell.edge === "1") extras.push("(E)");
+    if (cell.isVertex) extras.push("(V)");
+    if (cell.isEdge) extras.push("(E)");
     if (cell.connectable === "0") extras.push("(NC)");
     return extras;
   };
