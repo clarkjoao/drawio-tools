@@ -2,11 +2,20 @@ import { MxCell } from "./MxCell";
 
 export class MxGraphModel {
   root: MxCell[];
+  rootLayer?: MxCell;
   attributes: Record<string, string>;
 
   constructor(root: MxCell[] = [], attributes: Record<string, string> = {}) {
     this.root = root;
+    // NOTE: May we can improve this way to find root element;
+    this.rootLayer = root.find(
+      (cell) => !cell.isVertex && !cell.isEdge && cell.parent === undefined
+    );
     this.attributes = attributes;
+  }
+
+  get rootLayerId(): string {
+    return this.rootLayer?.id || "0";
   }
 
   static fromXml(xml: string): MxGraphModel {
@@ -59,13 +68,31 @@ export class MxGraphModel {
     this.root.push(cell);
   }
 
+  addCellAfter(cell: MxCell, referenceCellId: string): void {
+    const index = this.root.findIndex((c) => c.id === referenceCellId);
+    if (index !== -1) {
+      this.root.splice(index + 1, 0, cell);
+    } else {
+      this.root.push(cell);
+    }
+  }
+
+  addCellBefore(cell: MxCell, referenceCellId: string): void {
+    const index = this.root.findIndex((c) => c.id === referenceCellId);
+    if (index !== -1) {
+      this.root.splice(index, 0, cell);
+    } else {
+      this.root.push(cell);
+    }
+  }
+
   findCellById(id: string): MxCell | undefined {
     return this.root.find((cell) => cell.id === id);
   }
 
-  generateNewId(): string {
+  generateNewId(prefix?: string): string {
     const randomPart = Math.random().toString(36).substring(2, 12);
     const numberPart = Math.floor(Math.random() * 1000);
-    return `${randomPart}-${numberPart}`;
+    return `${prefix ?? ""}${randomPart}-${numberPart}`;
   }
 }

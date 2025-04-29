@@ -1,9 +1,9 @@
 import { MxGraphModel } from "./MxGraphModel";
 import { MxCell } from "./MxCell";
 import { MxGeometry } from "./MxGeometry";
-import { UserObject } from "./UserObject";
 import { MxStyle } from "./MxStyle";
 import { XmlUtils } from "./xml.utils";
+import { ObjectWrapper } from "./ObjectWrapper";
 
 export class MxBuilder {
   private model: MxGraphModel;
@@ -21,14 +21,22 @@ export class MxBuilder {
     return new MxBuilder(model);
   }
 
+  get rootLayerId(): string {
+    return this.model.rootLayer?.id || "0";
+  }
+
   addLayer(name: string): MxCell {
-    const id = this.model.generateNewId();
-    const rootCell = this.model.root[0];
+    const id = this.model.generateNewId("layer-");
+
     const layer = new MxCell({
       id,
       value: name,
-      parent: rootCell.id || "0"
+      parent: this.model.rootLayerId || "0",
+      style: new MxStyle({
+        locked: "1"
+      })
     });
+
     this.model.addCell(layer);
     return layer;
   }
@@ -51,7 +59,7 @@ export class MxBuilder {
       height: props.height.toString()
     });
 
-    const userObject = new UserObject({
+    const userObject = new ObjectWrapper({
       label: props.value,
       customAttributes: {}
     });
@@ -61,7 +69,7 @@ export class MxBuilder {
       style: props.style ? new MxStyle(props.style) : undefined,
       parent: props.parent,
       vertex: "1",
-      geometry,
+      children: geometry,
       wrapper: userObject
     });
 
@@ -115,30 +123,31 @@ export class MxBuilder {
       parent: props.parent,
       vertex: "1",
       connectable: "0",
-      geometry
+      children: geometry
     });
 
     this.model.addCell(group);
     return this;
   }
 
-  moveNode(id: string, newParentId: string): this {
+  moveNode(id: string, targetId: string): this {
     const node = this.model.findCellById(id);
-    const newParent = this.model.findCellById(newParentId);
+    const targetNode = this.model.findCellById(targetId);
 
     if (!node) {
       throw new Error(`Node with id ${id} not found.`);
     }
 
-    if (!newParent) {
-      throw new Error(`New parent with id ${newParentId} not found.`);
+    if (!targetNode) {
+      throw new Error(`New parent with id ${targetId} not found.`);
     }
 
-    if (!newParent.isLayer && !newParent.isGroup) {
-      throw new Error(`New parent (id ${newParentId}) is neither a layer nor a group.`);
+    const rootLayerId = this.model.rootLayer?.id || "0";
+    if (!targetNode.isLayer(rootLayerId) && !targetNode.isGroup) {
+      throw new Error(`New parent (id ${targetId}) is neither a layer nor a group.`);
     }
 
-    node.parent = newParentId;
+    node.parent = targetId;
     return this;
   }
 
@@ -156,7 +165,8 @@ export class MxBuilder {
       ...original,
       id: newId,
       parent: newParentId,
-      geometry: original.geometry ? new MxGeometry({ ...original.geometry }) : undefined
+      //TODO: FIX here
+      children: original.children ? new MxGeometry({ ...original.children } as any) : undefined
     });
 
     this.model.addCell(clone);
@@ -182,8 +192,19 @@ export class MxBuilder {
     return this.model;
   }
 
+  listNodes(layerId?: string): MxCell[] {
+    return this.model.root.filter((cell) => {
+      const isVisualNode = cell.isVertex || cell.isEdge;
+      const notLayer = !cell.isLayer && !cell.isLayerRoot;
+      const correctLayer = layerId ? cell.parent === layerId : true;
+      return isVisualNode && notLayer && correctLayer;
+    });
+  }
+
   listLayers(): MxCell[] {
-    return this.model.root.filter((cell) => cell.isLayer).filter((cell) => !cell.isLayerRoot);
+    const rootId = this.model.root[0].id;
+
+    return this.model.root.filter((cell) => cell.isLayer(rootId) && !cell.isLayerRoot(rootId));
   }
 
   listGroups(): MxCell[] {

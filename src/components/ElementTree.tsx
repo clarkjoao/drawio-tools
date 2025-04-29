@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { ChevronRight, ChevronDown, Layers, Folder, File, MoveDiagonal } from "lucide-react";
+import { ChevronRight, ChevronDown, Layers, Folder, File } from "lucide-react";
 import { useBuilder } from "@/context/BuilderContext";
 import { MxCell } from "@/MxGraph/MxCell";
 
@@ -49,13 +49,13 @@ export const ElementTree: React.FC = () => {
   };
 
   const getTypeTag = (cell: MxCell) => {
-    if (cell.isLayer) return "Layer";
+    if (cell.isLayer(builder?.rootLayerId)) return "Layer";
     if (cell.isGroup) return "Group";
     return "Node";
   };
 
   const getIcon = (cell: MxCell) => {
-    if (cell.isLayer) return <Layers className="h-4 w-4" />;
+    if (cell.isLayer(builder?.rootLayerId)) return <Layers className="h-4 w-4" />;
     if (cell.isGroup) return <Folder className="h-4 w-4" />;
     return <File className="h-4 w-4" />;
   };
@@ -72,7 +72,7 @@ export const ElementTree: React.FC = () => {
     if (typeof cell.value === "string" && cell.value.trim() !== "") return cell.value;
     if (cell.style?.shape) return cell.style.shape;
     if (cell.isGroup) return "Group";
-    if (cell.isLayer) return "Layer";
+    if (cell.isLayer(builder?.rootLayerId)) return "Layer";
     return "Unnamed";
   };
 
@@ -85,7 +85,7 @@ export const ElementTree: React.FC = () => {
 
     const children = builder.getModel().root.filter((c) => c.parent === id);
 
-    const hasChildren = (cell.isLayer || cell.isGroup) && children.length > 0;
+    const hasChildren = (cell.isLayer(builder?.rootLayerId) || cell.isGroup) && children.length > 0;
 
     return (
       <div key={id} style={{ marginLeft: `${depth * 20}px` }}>

@@ -1,6 +1,5 @@
+import { ObjectWrapper } from "./ObjectWrapper";
 import { MxGeometry } from "./MxGeometry";
-import { ObjectNode } from "./ObjectNode";
-import { UserObject } from "./UserObject";
 import { XmlUtils } from "./xml.utils";
 import { MxStyle } from "./MxStyle";
 
@@ -15,8 +14,8 @@ export class MxCell {
   target?: string;
   connectable?: "0" | "1";
   collapsed?: "0" | "1";
-  geometry?: MxGeometry;
-  wrapper?: UserObject | ObjectNode;
+  wrapper?: ObjectWrapper;
+  children?: MxGeometry | ObjectWrapper;
 
   constructor(props: Partial<MxCell> = {}) {
     if (props.style && !(props.style instanceof MxStyle) && typeof props.style === "object") {
@@ -32,13 +31,13 @@ export class MxCell {
 
   static fromElement(el: Element): MxCell {
     if (el.nodeName === "UserObject" || el.nodeName === "object") {
-      const isUserObject = el.nodeName === "UserObject";
-
-      const wrapper = isUserObject ? UserObject.fromElement(el) : ObjectNode.fromElement(el);
+      // const wrapper = wrapperList[el.nodeName as keyof typeof wrapperList].fromElement(el);
+      const wrapper = ObjectWrapper.fromElement(el);
 
       const innerCellEl = Array.from(el.children).find((c) => c.nodeName === "mxCell") as
         | Element
         | undefined;
+
       if (!innerCellEl) {
         throw new Error(`<${el.nodeName}> is missing an inner <mxCell>`);
       }
@@ -52,12 +51,10 @@ export class MxCell {
       return cell;
     }
 
-    const styleAttr = el.getAttribute("style") || "";
-
     const cell = new MxCell({
       id: el.getAttribute("id") || undefined,
-      value: el.getAttribute("value") || undefined,
-      style: MxStyle.parse(styleAttr),
+      value: el.hasAttribute("value") ? (el.getAttribute("value") ?? "") : undefined, //NOTE: let the value "" or undefined makes difference on Drawio, because if the value is undefined drawio will use label of fallback!
+      style: el.hasAttribute("style") ? MxStyle.parse(el.getAttribute("style") ?? "") : undefined,
       vertex: el.getAttribute("vertex") as "0" | "1" | undefined,
       edge: el.getAttribute("edge") as "0" | "1" | undefined,
       parent: el.getAttribute("parent") || undefined,
@@ -69,23 +66,33 @@ export class MxCell {
 
     for (const child of Array.from(el.children)) {
       if (child.nodeName === "mxGeometry") {
-        cell.geometry = MxGeometry.fromElement(child);
+        cell.children = MxGeometry.fromElement(child);
+      } else {
+        console.warn("Found child not mapped", el.id, el.nodeName, child.nodeName);
       }
     }
 
     return cell;
   }
 
-  get isLayer(): boolean {
-    return this.vertex !== "1" && this.edge !== "1" && !this.wrapper;
+  get isVertex(): boolean {
+    return this.vertex === "1";
   }
 
-  get isLayerRoot(): boolean {
-    return this.isLayer && this.parent === undefined;
+  get isEdge(): boolean {
+    return this.edge === "1";
+  }
+
+  isLayer(rootId = "0"): boolean {
+    return !this.isVertex && !this.isEdge && this.parent === rootId;
+  }
+
+  isLayerRoot(rootId = "0"): boolean {
+    return this.id === rootId;
   }
 
   get isGroup(): boolean {
-    return (this.style?.shape === "group" || this.connectable === "0") && this.vertex === "1";
+    return this.isVertex && this.connectable === "0" && !!this.style?.group;
   }
 
   toElement(doc: Document): Element {
@@ -95,44 +102,40 @@ export class MxCell {
       cellEl.setAttribute("id", this.id);
     }
 
-    let finalValue = "";
-
-    //NOTE: Problem is here
-    if (this.wrapper instanceof UserObject && this.wrapper.label) {
-      finalValue = this.wrapper.label;
-    } else if (this.wrapper instanceof ObjectNode && this.wrapper.label) {
-      finalValue = this.wrapper.label;
-    } else if (!this.wrapper && typeof this.value === "string" && this.value.trim() !== "") {
-      finalValue = this.value;
-    }
-
-    const safeValue = XmlUtils.escapeString(finalValue);
-    cellEl.setAttribute("value", safeValue);
-
-    if (this.style) {
-      const styleStr = MxStyle.stringify(this.style);
-      if (styleStr.length > 0) {
-        cellEl.setAttribute("style", styleStr);
+    //NOTE: With this check, some cell with value="" are been removing the attr, need check if can be a problema
+    if (!this.wrapper) {
+      if (this.value === "") {
+        // need keeps value ""
+        cellEl.setAttribute("value", "");
+      } else if (typeof this.value === "string") {
+        const safeValue = XmlUtils.escapeString(this.value);
+        cellEl.setAttribute("value", safeValue);
       }
     }
 
-    if (this.vertex) cellEl.setAttribute("vertex", this.vertex);
-    if (this.edge) cellEl.setAttribute("edge", this.edge);
-    if (this.connectable) cellEl.setAttribute("connectable", this.connectable);
+    if (this.style) {
+      const styleStr = MxStyle.stringify(this.style);
+      cellEl.setAttribute("style", styleStr);
+    } else if (this.style === null || this.style === undefined) {
+      // continue because does not e exists the attrs
+    } else {
+      cellEl.setAttribute("style", "");
+    }
+
     if (this.collapsed) cellEl.setAttribute("collapsed", this.collapsed);
     if (this.parent) cellEl.setAttribute("parent", this.parent);
+    if (this.vertex) cellEl.setAttribute("vertex", this.vertex);
+    if (this.connectable) cellEl.setAttribute("connectable", this.connectable);
     if (this.source) cellEl.setAttribute("source", this.source);
     if (this.target) cellEl.setAttribute("target", this.target);
+    if (this.edge) cellEl.setAttribute("edge", this.edge);
 
-    if (this.geometry) {
-      cellEl.appendChild(this.geometry.toElement(doc));
+    if (this.children) {
+      cellEl.appendChild(this.children.toElement(doc));
     }
 
     if (this.wrapper) {
-      const wrapperEl =
-        this.wrapper instanceof UserObject
-          ? this.wrapper.toUserObjectElement(doc)
-          : this.wrapper.toObjectElement(doc);
+      const wrapperEl = this.wrapper.toElement(doc);
 
       wrapperEl.appendChild(cellEl);
       return wrapperEl;

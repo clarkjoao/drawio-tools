@@ -11,6 +11,8 @@ interface BuilderContextProps {
   setBuilder: (builder: MxBuilder) => void;
   refreshBuilder: () => void;
   selectCellsInDrawio: (cellIds: string[]) => void;
+  mutateBuilder: (mutationFn: (builder: MxBuilder) => void) => void;
+  syncBuilder: () => void;
 }
 
 const BuilderContext = createContext<BuilderContextProps | undefined>(undefined);
@@ -28,6 +30,21 @@ export const BuilderProvider = ({ children }: { children: React.ReactNode }) => 
   }, []);
 
   const refreshBuilder = useCallback(() => {
+    if (builder) {
+      scheduleSendToDrawio(builder);
+    }
+  }, [builder]);
+
+  const mutateBuilder = useCallback(
+    (mutationFn: (builder: MxBuilder) => void) => {
+      if (!builder) return;
+      mutationFn(builder);
+      setBuilderState(builder);
+    },
+    [builder]
+  );
+
+  const syncBuilder = useCallback(() => {
     if (builder) {
       scheduleSendToDrawio(builder);
     }
@@ -51,7 +68,7 @@ export const BuilderProvider = ({ children }: { children: React.ReactNode }) => 
 
       window.postMessage({ type: MxEvents.REACT_XML_UPDATE, payload: xmlString }, "*");
       console.log("XML sent to Draw.io (hash updated)");
-    }, 300);
+    }, 200);
   };
 
   const selectCellsInDrawio = useCallback((cellIds: string[]) => {
@@ -87,15 +104,13 @@ export const BuilderProvider = ({ children }: { children: React.ReactNode }) => 
             const incomingHash = await calculateHash(xmlString);
 
             if (!xmlString || lastXmlHash.current === incomingHash) {
-              console.log("Received XML identical to current (hash matched), skipping update");
+              // console.log("Received XML identical to current (hash matched), skipping update");
               return;
             }
 
             const newBuilder = MxBuilder.fromXml(xmlString);
             setBuilderState(newBuilder);
             lastXmlHash.current = incomingHash;
-
-            console.log("New XML received from Draw.io and builder updated (hash updated)");
           } catch (err) {
             console.error("Error processing XML from Draw.io:", err);
           }
@@ -127,7 +142,9 @@ export const BuilderProvider = ({ children }: { children: React.ReactNode }) => 
         selectedCellIds,
         setBuilder,
         refreshBuilder,
-        selectCellsInDrawio
+        selectCellsInDrawio,
+        mutateBuilder,
+        syncBuilder
       }}
     >
       {children}

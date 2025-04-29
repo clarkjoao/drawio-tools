@@ -1,5 +1,5 @@
 import Editor from "@monaco-editor/react";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { Button } from "./ui/button";
 
 export interface IXMLEditor {

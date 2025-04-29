@@ -13,6 +13,8 @@ export class MxStyle {
   fontColor?: string;
   align?: MxAlign;
   verticalAlign?: MxVerticalAlign;
+  locked?: "0" | "1";
+  group: boolean = false;
 
   custom: Record<string, string> = {};
 
@@ -28,7 +30,8 @@ export class MxStyle {
     "fontSize",
     "fontColor",
     "align",
-    "verticalAlign"
+    "verticalAlign",
+    "locked"
   ] as const;
 
   constructor(props: Partial<Record<(typeof MxStyle.knownAttributes)[number] | string, any>> = {}) {
@@ -51,6 +54,10 @@ export class MxStyle {
 
     const pairs = styleStr.split(";").filter(Boolean);
 
+    if (pairs.includes("group")) {
+      style.group = true;
+    }
+
     for (const pair of pairs) {
       const [rawKey, rawValue] = pair.split("=");
       const key = rawKey.trim();
@@ -66,6 +73,22 @@ export class MxStyle {
     }
 
     return style;
+  }
+
+  get isLocked(): boolean {
+    return this.locked === "1";
+  }
+
+  set setLocked(value: boolean) {
+    this.locked = value ? "1" : "0";
+  }
+
+  get isHidden(): boolean {
+    return this.overflow === "hidden";
+  }
+
+  set setHidden(value: boolean) {
+    this.overflow = value ? "hidden" : "visible";
   }
 
   static stringify(style: MxStyle): string {
@@ -88,6 +111,7 @@ export class MxStyle {
   }
 
   toString(): string {
+    if (this.group) return "group";
     return MxStyle.stringify(this);
   }
 
