@@ -173,18 +173,6 @@ export function CustomElements() {
 
         const menuItemId = generateDrawioId(`menu-item-tag-${index}`);
 
-        // const linkJson = {
-        //   title: `Show Only ${currentTag}`,
-        //   actions: [
-        //     { hide: { tags: otherTags } },
-        //     { style: { cells: otherTags, key: "overflow", value: "hiden" } },
-        //     { show: { tags: [currentTag] } },
-        //     { style: { cells: [currentTag], key: "overflow", value: "visible" } },
-        //     { style: { tags: ["menu-items-tags"], key: "fillColor", value: "#ffffff" } },
-        //     { style: { cells: [menuItemId], key: "fillColor", value: "#d3d3d3" } }
-        //   ]
-        // };
-
         const linkJson = {
           title: `Show Only ${currentTag}`,
           actions: [

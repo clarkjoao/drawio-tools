@@ -4,10 +4,20 @@ import ReactDOM from "react-dom/client";
 import App from "@/App";
 import { MxEvents } from "@/MxGraph/MxEvents";
 
+const debounceTimers = new WeakMap<Function, number>();
+
 (window as any).Draw.loadPlugin(function (ui: any) {
   const graph = ui.editor.graph;
   const model = graph.model;
   const codec = new mxCodec();
+
+  function debounce(callback: () => void, delay = 300) {
+    const existingTimer = debounceTimers.get(callback);
+    if (existingTimer) clearTimeout(existingTimer);
+
+    const newTimer = setTimeout(callback, delay);
+    debounceTimers.set(callback, newTimer);
+  }
 
   function sendXmlToReact() {
     const xmlNode = codec.encode(model);
@@ -32,6 +42,7 @@ import { MxEvents } from "@/MxGraph/MxEvents";
 
     switch (type) {
       case MxEvents.REACT_XML_UPDATE:
+        debugger;
         if (typeof payload === "string") {
           updateModelFromXml(payload);
         }
@@ -56,8 +67,9 @@ import { MxEvents } from "@/MxGraph/MxEvents";
 
       model.beginUpdate();
       try {
-        model.clear();
-        model.mergeChildren(newModel.root, model.root);
+        // model.clear();
+        // model.mergeChildren(newModel.root, model.root);
+        model.setRoot(newModel.root);
       } finally {
         model.endUpdate();
       }
@@ -94,7 +106,7 @@ import { MxEvents } from "@/MxGraph/MxEvents";
       position: "absolute",
       // top: "20px",
       // left: "20px",
-      zIndex: "9999"
+      zIndex: "9998"
     });
 
     document.body.appendChild(floatingMenu);
@@ -138,7 +150,7 @@ import { MxEvents } from "@/MxGraph/MxEvents";
         const root = ReactDOM.createRoot(container);
         root.render(<App />);
         console.log("React App mounted inside floating menu");
-        setTimeout(sendXmlToReact, 500);
+        debounce(sendXmlToReact, 500);
       } else {
         console.warn("Waiting for react-root-container...");
         setTimeout(tryMountReact, 100);
@@ -146,8 +158,10 @@ import { MxEvents } from "@/MxGraph/MxEvents";
     };
     tryMountReact();
 
-    model.addListener(mxEvent.CHANGE, sendXmlToReact);
-    graph.getSelectionModel().addListener(mxEvent.CHANGE, sendSelectionToReact);
+    model.addListener(mxEvent.CHANGE, () => debounce(sendXmlToReact, 300));
+    graph
+      .getSelectionModel()
+      .addListener(mxEvent.CHANGE, () => debounce(sendSelectionToReact, 300));
     window.addEventListener("message", handleIncomingMessage);
   }
 

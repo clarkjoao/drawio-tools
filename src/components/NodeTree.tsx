@@ -32,9 +32,20 @@ const NodeTree: React.FC = () => {
     });
   };
 
-  const handleSelectNode = (node: MxCell) => {
+  const handleSelectNode = (event: React.MouseEvent<HTMLDivElement>, node: MxCell) => {
     if (!node.id) return;
-    selectCellsInDrawio([node.id]);
+
+    const isMultiSelect =
+      event.shiftKey || (navigator.platform.includes("Mac") ? event.metaKey : event.ctrlKey);
+
+    if (isMultiSelect) {
+      const newSelection = selectedCellIds.includes(node.id)
+        ? selectedCellIds.filter((id) => id !== node.id)
+        : [...selectedCellIds, node.id];
+      selectCellsInDrawio(newSelection);
+    } else {
+      selectCellsInDrawio([node.id]);
+    }
 
     if (node.parent) {
       window.postMessage(
@@ -143,7 +154,7 @@ const NodeTree: React.FC = () => {
           <div
             className="ml-1 cursor-pointer flex-grow truncate"
             style={{ paddingLeft: `${level * 8}px` }}
-            onClick={() => !isHiddenOrLocked && handleSelectNode(node)}
+            onClick={(e) => !isHiddenOrLocked && handleSelectNode(e, node)}
             title={label}
           >
             <div className="flex items-center gap-2">
