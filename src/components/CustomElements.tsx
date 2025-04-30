@@ -9,7 +9,7 @@ import { generateDrawioId } from "@/utils/drawio";
 export function CustomElements() {
   const { builder, mutateBuilder, syncBuilder } = useBuilder();
 
-  function addCustomMenu() {
+  function addLayersMenu() {
     if (!builder) return;
 
     mutateBuilder((builder) => {
@@ -17,7 +17,7 @@ export function CustomElements() {
 
       const allLayers = builder.listLayers();
 
-      const menuLayer = builder.addLayer("menu-custom");
+      const menuLayer = builder.addLayer("layers-menu-custom");
 
       const buttonHeight = 45;
       const totalHeight = allLayers.length * buttonHeight || buttonHeight;
@@ -122,13 +122,141 @@ export function CustomElements() {
     syncBuilder();
   }
 
+  function addTagsMenu() {
+    if (!builder) return;
+
+    mutateBuilder((builder) => {
+      const model = builder.getModel();
+
+      const menuLayer = builder.addLayer("tags-menu-custom");
+      const allTags = builder.listTags();
+
+      const buttonHeight = 45;
+      const totalHeight = allTags.length * buttonHeight || buttonHeight;
+
+      const menuBackground = new MxCell({
+        id: generateDrawioId("menu-background"),
+        style: new MxStyle({
+          shape: "rect",
+          strokeColor: "#eeeeee",
+          fillColor: "#ffffff",
+          fontColor: "#000000",
+          fontStyle: "0",
+          childLayout: "stackLayout",
+          horizontal: "1",
+          startSize: "0",
+          horizontalStack: "0",
+          resizeParent: "1",
+          resizeParentMax: "0",
+          resizeLast: "0",
+          collapsible: "0",
+          marginBottom: "0",
+          whiteSpace: "wrap",
+          html: "1",
+          shadow: "1"
+        }),
+        vertex: "1",
+        parent: menuLayer.id ?? "1",
+        children: new MxGeometry({
+          x: "360",
+          y: "250",
+          width: "100",
+          height: totalHeight.toString(),
+          as: "geometry"
+        })
+      });
+
+      model.addCellAfter(menuBackground, menuLayer.id!);
+
+      allTags.forEach((currentTag, index) => {
+        const otherTags = allTags.filter((tag) => tag !== currentTag);
+
+        const menuItemId = generateDrawioId(`menu-item-tag-${index}`);
+
+        // const linkJson = {
+        //   title: `Show Only ${currentTag}`,
+        //   actions: [
+        //     { hide: { tags: otherTags } },
+        //     { style: { cells: otherTags, key: "overflow", value: "hiden" } },
+        //     { show: { tags: [currentTag] } },
+        //     { style: { cells: [currentTag], key: "overflow", value: "visible" } },
+        //     { style: { tags: ["menu-items-tags"], key: "fillColor", value: "#ffffff" } },
+        //     { style: { cells: [menuItemId], key: "fillColor", value: "#d3d3d3" } }
+        //   ]
+        // };
+
+        const linkJson = {
+          title: `Show Only ${currentTag}`,
+          actions: [
+            {
+              hide: { tags: otherTags }
+            },
+            { show: { tags: [currentTag] } },
+            { style: { tags: ["menu-items-tags"], key: "fillColor", value: "#ffffff" } },
+            { style: { cells: [menuItemId], key: "fillColor", value: "#d3d3d3" } }
+          ]
+        };
+
+        const linkEscaped = `data:action/json,${XmlUtils.escapeString(JSON.stringify(linkJson))}`;
+
+        const menuItemUserObject = new ObjectWrapper({
+          id: menuItemId,
+          label: currentTag,
+          tags: ["menu-items-tags"],
+          link: linkEscaped
+        });
+
+        const menuItemCell = new MxCell({
+          id: undefined,
+          style: new MxStyle({
+            shape: "text",
+            strokeColor: "none",
+            align: "left",
+            verticalAlign: "middle",
+            spacingLeft: "10",
+            spacingRight: "10",
+            overflow: "hidden",
+            portConstraint: "eastwest",
+            rotatable: "0",
+            whiteSpace: "wrap",
+            html: "1",
+            rSize: "5",
+            fillColor: "none",
+            fontColor: "inherit",
+            fontSize: "14"
+          }),
+          vertex: "1",
+          parent: menuBackground.id,
+          children: new MxGeometry({
+            y: `${index * buttonHeight}`,
+            width: "100",
+            height: `${buttonHeight}`,
+            as: "geometry"
+          }),
+          wrapper: menuItemUserObject
+        });
+
+        model.addCell(menuItemCell);
+      });
+    });
+
+    syncBuilder();
+  }
+
   return (
     <div className="flex items-center space-x-4 px-4 py-2 bg-gray-100 border-b border-gray-300">
       <button
-        onClick={addCustomMenu}
+        onClick={addLayersMenu}
         className="text-sm text-gray-800 hover:bg-gray-200 px-2 py-1 rounded transition"
       >
         Add Layer Menu
+      </button>
+
+      <button
+        onClick={addTagsMenu}
+        className="text-sm text-gray-800 hover:bg-gray-200 px-2 py-1 rounded transition"
+      >
+        Add Tags Menu
       </button>
     </div>
   );

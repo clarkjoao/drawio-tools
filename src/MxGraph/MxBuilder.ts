@@ -211,6 +211,19 @@ export class MxBuilder {
     return this.model.root.filter((cell) => cell.isGroup);
   }
 
+  listTags(): string[] {
+    const tags = this.model.root
+      .filter((cell) => cell.wrapper)
+      .filter((cell) => cell.wrapper && Array.isArray(cell.wrapper.tags))
+      .flatMap((cell) => cell.wrapper?.tags || []);
+
+    return Array.from(new Set(tags));
+  }
+
+  findCellsByTag(tag: string): MxCell[] {
+    return this.model.root.filter((cell) => cell.wrapper?.tags?.includes(tag));
+  }
+
   toXml(): string {
     return XmlUtils.autoFixEscapes(this.model.toXml());
   }
